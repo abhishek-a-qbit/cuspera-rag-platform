@@ -312,7 +312,11 @@ def page_analytics():
                     })
                 
                 if metrics_data:
-                    metrics_df = pd.DataFrame(metrics_data)
+                    try:
+                        metrics_df = pd.DataFrame(metrics_data)
+                    except Exception as e:
+                        st.error(f"Error creating metrics dataframe: {e}")
+                        metrics_df = pd.DataFrame([{"Metric": "Error", "Value": str(e)}])
                     
                     # Metric cards with visual indicators
                     col1, col2, col3, col4 = st.columns(4)
@@ -445,10 +449,14 @@ def page_analytics():
                         "Competitor B": "Budget",
                         "Competitor C": "Premium"
                     }
-                    comp_df = pd.DataFrame({
-                        "Provider": list(sample_competitors.keys()),
-                        "Price Tier": list(sample_competitors.values())
-                    })
+                    try:
+                        comp_df = pd.DataFrame({
+                            "Provider": list(sample_competitors.keys()),
+                            "Price Tier": list(sample_competitors.values())
+                        })
+                    except Exception as e:
+                        st.error(f"Error creating competitors dataframe: {e}")
+                        comp_df = pd.DataFrame({"Provider": ["Error"], "Price Tier": [str(e)]})
                     fig = px.bar(comp_df, x="Provider", y="Price Tier", title="Competitive Pricing Comparison")
                     st.plotly_chart(fig, use_container_width=True)
                 
