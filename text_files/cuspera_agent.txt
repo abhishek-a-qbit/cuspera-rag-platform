@@ -1,0 +1,288 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  LineChart, Line, Cell, PieChart, Pie, AreaChart, Area 
+} from 'recharts';
+import { 
+  Terminal, Sparkles, LayoutDashboard, Send, Loader2, 
+  TrendingUp, PieChart as PieIcon, BarChart3, Info, AlertCircle 
+} from 'lucide-react';
+
+const apiKey = ""; // Environment provided
+
+const App = () => {
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [report, setReport] = useState(null);
+  const [error, setError] = useState(null);
+  const scrollRef = useRef(null);
+
+  // System prompt to force Gemini to return structured JSON for our UI components
+  const systemPrompt = `
+    You are the CUSP Strategic Consultant AI. Your job is to analyze startup growth, lead gen, and budget strategies.
+    When a user asks for a report, analysis, or data, you must respond ONLY with a JSON object.
+    
+    The JSON must follow this structure:
+    {
+      "title": "Title of the report",
+      "summary": "A concise, high-impact paragraph (max 4 lines) explaining the strategic insight.",
+      "kpis": [
+        {"label": "Metric Name", "value": "Value", "trend": "+10%"},
+        {"label": "Metric Name", "value": "Value", "trend": "-5%"}
+      ],
+      "chartType": "bar" | "line" | "pie" | "area" | "funnel",
+      "data": [
+        {"name": "Label", "value": 100},
+        {"name": "Label", "value": 200}
+      ],
+      "insights": ["Point 1", "Point 2"],
+      "recommendation": "One clear action item"
+    }
+    Ensure the data reflects realistic startup metrics based on the user's specific query.
+  `;
+
+  const generateReport = async () => {
+    if (!input.trim()) return;
+    setLoading(true);
+    setError(null);
+
+    let retries = 0;
+    const maxRetries = 5;
+
+    const callApi = async () => {
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: input }] }],
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            generationConfig: { responseMimeType: "application/json" }
+          })
+        });
+
+        if (!response.ok) throw new Error('API request failed');
+        
+        const result = await response.json();
+        const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) {
+          setReport(JSON.parse(text));
+        }
+      } catch (err) {
+        if (retries < maxRetries) {
+          const delay = Math.pow(2, retries) * 1000;
+          retries++;
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return callApi();
+        }
+        setError("Failed to generate report. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    await callApi();
+  };
+
+  useEffect(() => {
+    if (report) scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [report]);
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-indigo-500/30">
+      {/* Header */}
+      <nav className="border-b border-white/10 px-6 py-4 flex items-center justify-between backdrop-blur-md sticky top-0 z-50">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-gradient-to-tr from-indigo-600 to-violet-500 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <Sparkles size={18} className="text-white" />
+          </div>
+          <span className="font-black tracking-tighter text-xl text-white">CUSP <span className="text-indigo-400 font-light">AI</span></span>
+        </div>
+        <div className="hidden md:flex gap-6 text-sm font-medium text-slate-400">
+          <span className="hover:text-white cursor-pointer transition-colors">Forecasting</span>
+          <span className="hover:text-white cursor-pointer transition-colors">Risk Engine</span>
+          <span className="hover:text-white cursor-pointer transition-colors">Lead Velocity</span>
+        </div>
+      </nav>
+
+      <main className="max-w-5xl mx-auto p-6 space-y-8">
+        {/* Dynamic Prompt Section */}
+        <section className="bg-slate-900/50 border border-white/5 rounded-2xl p-6 shadow-2xl">
+          <div className="flex items-center gap-2 mb-4 text-indigo-400">
+            <Terminal size={18} />
+            <h2 className="text-sm font-bold uppercase tracking-widest">Consultant Command Center</h2>
+          </div>
+          <div className="relative">
+            <textarea
+              className="w-full bg-slate-800/50 border border-white/10 rounded-xl p-4 text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all resize-none h-32"
+              placeholder="e.g., 'Generate a growth report for a 50-person startup with a 10k budget focusing on Meta Ads and Bitrix24 automation...'"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+            />
+            <button 
+              onClick={generateReport}
+              disabled={loading}
+              className="absolute bottom-4 right-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-indigo-600/20"
+            >
+              {loading ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
+              {loading ? "Analyzing..." : "Generate Analysis"}
+            </button>
+          </div>
+        </section>
+
+        {/* Dynamic Report Content */}
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl flex items-center gap-3 text-red-400">
+            <AlertCircle size={20} />
+            <p className="text-sm font-medium">{error}</p>
+          </div>
+        )}
+
+        {report && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700" ref={scrollRef}>
+            {/* Report Header */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+              <div>
+                <h1 className="text-3xl font-black text-white tracking-tight">{report.title}</h1>
+                <p className="text-indigo-400 font-mono text-sm tracking-widest uppercase mt-1">Strategic Audit Result</p>
+              </div>
+              <div className="bg-indigo-500/10 border border-indigo-500/20 px-4 py-2 rounded-full text-xs font-bold text-indigo-300 flex items-center gap-2">
+                <LayoutDashboard size={14} /> DYNAMIC AGENT OUTPUT
+              </div>
+            </div>
+
+            {/* KPI Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {report.kpis?.map((kpi, idx) => (
+                <div key={idx} className="bg-slate-900 border border-white/5 p-4 rounded-xl hover:bg-slate-800/80 transition-all group">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase mb-1 tracking-tighter group-hover:text-indigo-400 transition-colors">{kpi.label}</p>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xl font-black text-white">{kpi.value}</span>
+                    <span className={`text-[10px] font-bold ${kpi.trend.startsWith('+') ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {kpi.trend}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Visualization and Analysis Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Primary Chart */}
+              <div className="lg:col-span-2 bg-slate-900 border border-white/5 p-6 rounded-2xl relative overflow-hidden">
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2">
+                    <BarChart3 size={16} className="text-indigo-400" /> Data Visualization
+                  </h3>
+                </div>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    {renderChart(report.chartType, report.data)}
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Insights Panel */}
+              <div className="bg-indigo-600 p-6 rounded-2xl shadow-xl shadow-indigo-900/20 text-indigo-50">
+                <h3 className="text-sm font-black uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <Info size={16} /> Key Insights
+                </h3>
+                <ul className="space-y-4">
+                  {report.insights?.map((item, idx) => (
+                    <li key={idx} className="text-sm flex gap-3 leading-relaxed">
+                      <span className="text-indigo-300 mt-1">•</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-8 pt-6 border-t border-indigo-400/30">
+                  <p className="text-[10px] font-bold uppercase tracking-widest mb-2 opacity-70">Primary Action</p>
+                  <p className="text-lg font-bold leading-tight">{report.recommendation}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Paragraph Summary */}
+            <div className="bg-white/[0.02] border border-white/5 p-8 rounded-2xl">
+              <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-4">Executive Brief</h3>
+              <p className="text-slate-300 leading-relaxed text-lg font-medium italic">
+                "{report.summary}"
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!report && !loading && (
+          <div className="py-20 flex flex-col items-center text-center space-y-4">
+            <div className="w-16 h-16 rounded-full bg-slate-900 border border-white/5 flex items-center justify-center text-slate-500">
+              <LayoutDashboard size={32} />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-white">No Strategy Generated</h3>
+              <p className="text-slate-500 max-w-sm">Input your startup parameters above to generate a dynamic visual growth report.</p>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+};
+
+// Helper to render different chart types dynamically
+const renderChart = (type, data) => {
+  if (!data) return null;
+  
+  const colors = ['#6366f1', '#818cf8', '#a5b4fc', '#c7d2fe', '#e0e7ff'];
+
+  switch(type) {
+    case 'pie':
+      return (
+        <PieChart>
+          <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} stroke="none">
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+            ))}
+          </Pie>
+          <Tooltip contentStyle={{backgroundColor: '#0f172a', border: 'none', borderRadius: '8px', color: '#fff'}} />
+        </PieChart>
+      );
+    case 'line':
+      return (
+        <LineChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
+          <XAxis dataKey="name" stroke="#64748b" fontSize={10} axisLine={false} tickLine={false} />
+          <YAxis stroke="#64748b" fontSize={10} axisLine={false} tickLine={false} />
+          <Tooltip contentStyle={{backgroundColor: '#0f172a', border: 'none', borderRadius: '8px'}} />
+          <Line type="monotone" dataKey="value" stroke="#6366f1" strokeWidth={3} dot={{r: 4, fill: '#6366f1'}} />
+        </LineChart>
+      );
+    case 'area':
+      return (
+        <AreaChart data={data}>
+          <defs>
+            <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
+              <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
+          <XAxis dataKey="name" stroke="#64748b" fontSize={10} axisLine={false} tickLine={false} />
+          <Tooltip contentStyle={{backgroundColor: '#0f172a', border: 'none', borderRadius: '8px'}} />
+          <Area type="monotone" dataKey="value" stroke="#6366f1" fillOpacity={1} fill="url(#colorVal)" />
+        </AreaChart>
+      );
+    default:
+      return (
+        <BarChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
+          <XAxis dataKey="name" stroke="#64748b" fontSize={10} axisLine={false} tickLine={false} />
+          <YAxis stroke="#64748b" fontSize={10} axisLine={false} tickLine={false} />
+          <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{backgroundColor: '#0f172a', border: 'none', borderRadius: '8px'}} />
+          <Bar dataKey="value" fill="#6366f1" radius={[4, 4, 0, 0]} />
+        </BarChart>
+      );
+  }
+};
+
+export default App;

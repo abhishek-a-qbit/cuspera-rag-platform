@@ -1,0 +1,184 @@
+# Quick Start Guide
+
+## 🚀 Running the Cuspera RAG Application
+
+### Prerequisites
+1. **Python 3.10+** installed
+2. **GOOGLE_API_KEY** from Google AI (Gemini API)
+
+### Step 1: Setup Environment File
+
+```bash
+# Copy the example config
+Copy-Item config/.env.example .env
+
+# Open .env and add your GOOGLE_API_KEY
+# Example:
+# GOOGLE_API_KEY=your_actual_api_key_here
+```
+
+### Step 2: Install Dependencies
+
+```bash
+pip install -r config/requirements.txt
+```
+
+### Option A: Run Just the Streamlit App (Simple)
+
+```bash
+# From the root directory
+streamlit run app/streamlit_app.py
+```
+
+The app will open at: `http://localhost:8501`
+
+**Note**: This runs the frontend only. It connects to API endpoints (requires API running separately if you want full functionality).
+
+### Option B: Run Complete System (API + Frontend)
+
+#### Terminal 1 - Start the Backend API:
+```bash
+cd src
+python api_backend.py
+```
+
+API will run at: `http://localhost:8000`
+
+#### Terminal 2 - Start the Frontend:
+```bash
+streamlit run app/streamlit_app.py
+```
+
+Frontend will run at: `http://localhost:8501`
+
+### Option C: Use the PowerShell Launcher (Windows)
+
+```bash
+.\RUN_APP.ps1
+```
+
+This will:
+1. Check for .env file
+2. Install dependencies if needed
+3. Start the Streamlit app
+
+### Directory Structure
+
+```
+Cuspera/
+├── src/                    # Core implementation
+│   ├── api_backend.py     # FastAPI backend
+│   ├── rag_graph.py       # RAG pipeline
+│   ├── vector_store.py    # ChromaDB + hybrid search
+│   ├── hybrid_search.py   # Semantic + keyword search
+│   ├── data_loader.py     # Load datasets
+│   └── config.py          # Configuration
+│
+├── app/                    # Frontend
+│   └── streamlit_app.py   # Streamlit interface
+│
+├── tests/                  # Test files
+│   ├── test_hybrid_search.py
+│   └── test_integration.py
+│
+├── scripts/                # Utility scripts
+│   ├── startup.py         # Full system startup
+│   └── run_poc.py         # POC launcher
+│
+├── config/                 # Configuration files
+│   ├── requirements.txt    # Dependencies
+│   └── .env.example        # Example environment
+│
+├── docs/                   # Documentation
+│   ├── HYBRID_SEARCH_*.md
+│   ├── README.md
+│   └── ... (other docs)
+│
+├── Database/               # Data files
+│   ├── dataset_01_*.json
+│   └── ... (23 datasets)
+│
+└── web/                    # Web assets
+    └── cuspera.explore.html
+```
+
+## 🎯 What Each Component Does
+
+### Streamlit App (`app/streamlit_app.py`)
+- **Chat**: Ask questions about 6sense platform
+- **Analytics**: See platform insights
+- **Reports**: Generate feature reports  
+- **Status**: Monitor system health
+
+### Backend API (`src/api_backend.py`)
+- REST API on port 8000
+- 7+ endpoints for retrieval, generation, analytics
+- RAG pipeline orchestration
+
+### Vector Store (`src/vector_store.py`)
+- Manages embeddings with ChromaDB
+- Hybrid search (semantic + keyword)
+- Document indexing and retrieval
+
+### Hybrid Search (`src/hybrid_search.py`)
+- Combines semantic understanding with keyword matching
+- Configurable weights (default 60/40)
+- Better accuracy than semantic alone
+
+## ✅ First Time Setup Checklist
+
+- [ ] Python 3.10+ installed
+- [ ] GOOGLE_API_KEY obtained
+- [ ] `.env` file created with API key
+- [ ] Dependencies installed: `pip install -r config/requirements.txt`
+- [ ] Able to run: `streamlit run app/streamlit_app.py`
+- [ ] App opens at `http://localhost:8501`
+
+## 🆘 Troubleshooting
+
+### "GOOGLE_API_KEY not found"
+→ Check your `.env` file exists and has the correct key
+
+### "Module not found" errors
+→ Make sure you're in the project root directory
+→ Check that path includes `src/` folder
+
+### "Port 8000 already in use"
+→ Another API instance is running
+→ Kill the process or use a different port
+
+### "Port 8501 already in use"
+→ Another Streamlit instance is running
+→ Kill the process: `Get-Process streamlit | Stop-Process`
+
+## 📖 Documentation
+
+See the `docs/` folder for comprehensive guides:
+
+- **HYBRID_SEARCH_README.md** - Hybrid search overview
+- **HYBRID_SEARCH_GUIDE.md** - Complete technical guide
+- **HYBRID_SEARCH_QUICK_REF.md** - Quick reference
+- **README.md** - Full system documentation
+- **ARCHITECTURE.md** - System architecture
+- **DEPLOYMENT.md** - Production deployment
+
+## 🧪 Testing
+
+Run tests to verify everything works:
+
+```bash
+# Test hybrid search functionality
+python tests/test_hybrid_search.py
+
+# Run full integration tests
+python tests/test_integration.py
+```
+
+## 🚀 You're Ready!
+
+Choose your option above and get started:
+- **Simple**: Just run `streamlit run app/streamlit_app.py`
+- **Complete**: Start API in one terminal, Streamlit in another
+- **Automated**: Run `.\RUN_APP.ps1` (Windows only)
+
+Happy exploring! 🎉

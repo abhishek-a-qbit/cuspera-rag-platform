@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuspera: The Intelligent Consultant System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; color: #1E293B; }
+        .chart-container { position: relative; width: 100%; max-width: 600px; margin: 0 auto; height: 350px; max-height: 400px; }
+        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        .gradient-text { background: linear-gradient(135deg, #4F46E5 0%, #0EA5E9 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .step-arrow::after { content: "▼"; font-size: 1.5rem; color: #94A3B8; display: block; text-align: center; margin: 0.5rem 0; }
+        @media (min-width: 768px) { .step-arrow::after { content: "▶"; display: inline-block; margin: 0 1rem; transform: none; } }
+        /* Process Flow Connector Styling using CSS borders */
+        .connector-line { width: 2px; background-color: #CBD5E1; height: 2rem; margin: 0 auto; }
+        @media (min-width: 768px) { .connector-line { width: 2rem; height: 2px; margin: auto 0; } }
+    </style>
+    <!-- 
+        Palette: Vibrant Tech
+        Primary: #4F46E5
+        Secondary: #0EA5E9
+        Accent: #F59E0B
+        Success: #10B981
+        Background: #F8FAFC
+    -->
+    <!-- 
+        Source Material Analysis & Plan:
+        1.  **Narrative:** Move from "Chatbot" to "System". The story follows the data flow: User Input -> Processing -> Recommendation -> Validation.
+        2.  **Visualizations:**
+            -   **Goal: Compare:** Radar Chart for RAGAS Metrics (Old Bot vs. Cuspera System).
+            -   **Goal: Organize:** CSS Flow Diagram for the "System Loop" (Ingest -> Retrieve -> etc.).
+            -   **Goal: Relationships:** Scatter Plot for Vector Similarity (Matchmaker Logic).
+            -   **Goal: Change:** Line Chart for Accuracy Improvement over time with HITL.
+            -   **Goal: Inform:** Tech Stack Cards.
+        3.  **No SVG/Mermaid Confirmation:** All diagrams use CSS/HTML. All charts use Chart.js Canvas.
+    -->
+</head>
+<body class="antialiased">
+
+    <!-- Header / Hook -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-slate-800">Cuspera<span class="text-indigo-600">POC</span></h1>
+            <span class="px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-sm font-semibold">Strategic Blueprint</span>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-20">
+
+        <!-- Section 1: Introduction -->
+        <section class="text-center space-y-6 max-w-4xl mx-auto">
+            <h2 class="text-4xl md:text-5xl font-extrabold tracking-tight">
+                Beyond the <span class="gradient-text">Chatbot</span>.
+            </h2>
+            <p class="text-xl text-slate-600 leading-relaxed">
+                Most B2B software directories are static. Cuspera is building a <strong>Consultative Recommendation Engine</strong>. By ingesting internal business context and using rigorous automated testing, we are creating a Decision Support System, not just a Q&A script.
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+                <div class="p-6 bg-white rounded-xl shadow-md border-l-4 border-indigo-500">
+                    <p class="text-sm text-slate-500 uppercase font-bold tracking-wide">Goal</p>
+                    <p class="text-2xl font-bold text-slate-800 mt-2">Hyper-Personalized</p>
+                    <p class="text-sm text-slate-600 mt-1">Recommendations based on user docs</p>
+                </div>
+                <div class="p-6 bg-white rounded-xl shadow-md border-l-4 border-sky-500">
+                    <p class="text-sm text-slate-500 uppercase font-bold tracking-wide">Method</p>
+                    <p class="text-2xl font-bold text-slate-800 mt-2">Systematic Loop</p>
+                    <p class="text-sm text-slate-600 mt-1">Ingest, Reason, Visualize, Correct</p>
+                </div>
+                <div class="p-6 bg-white rounded-xl shadow-md border-l-4 border-amber-500">
+                    <p class="text-sm text-slate-500 uppercase font-bold tracking-wide">Assurance</p>
+                    <p class="text-2xl font-bold text-slate-800 mt-2">RAGAS + HITL</p>
+                    <p class="text-sm text-slate-600 mt-1">Automated metrics & expert oversight</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Core Philosophy (The Loop) -->
+        <section class="bg-white rounded-3xl shadow-lg p-8 md:p-12">
+            <div class="mb-10">
+                <h3 class="text-3xl font-bold text-slate-800 mb-4">Core Philosophy: Systems, Not Scripts</h3>
+                <p class="text-lg text-slate-600">
+                    A linear script breaks when a user asks an unexpected question. The Cuspera system relies on a continuous <strong>adaptive loop</strong> to handle complex B2B queries.
+                </p>
+            </div>
+            
+            <!-- CSS Flow Diagram -->
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                <!-- Step 1 -->
+                <div class="flex-1 flex flex-col items-center group">
+                    <div class="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center text-2xl font-bold text-indigo-600 mb-4 group-hover:bg-indigo-600 group-hover:text-white transition-colors duration-300">1</div>
+                    <h4 class="font-bold text-lg">Ingest</h4>
+                    <p class="text-sm text-center text-slate-500">User PDFs & Drives</p>
+                </div>
+                <!-- Connector -->
+                <div class="hidden md:block w-full h-1 bg-slate-200 rounded relative overflow-hidden">
+                    <div class="absolute top-0 left-0 h-full bg-indigo-500 w-1/2"></div>
+                </div>
+                <!-- Step 2 -->
+                <div class="flex-1 flex flex-col items-center group">
+                    <div class="w-16 h-16 rounded-full bg-sky-100 flex items-center justify-center text-2xl font-bold text-sky-600 mb-4 group-hover:bg-sky-600 group-hover:text-white transition-colors duration-300">2</div>
+                    <h4 class="font-bold text-lg">Retrieve</h4>
+                    <p class="text-sm text-center text-slate-500">Hybrid Search</p>
+                </div>
+                 <!-- Connector -->
+                 <div class="hidden md:block w-full h-1 bg-slate-200"></div>
+                <!-- Step 3 -->
+                <div class="flex-1 flex flex-col items-center group">
+                    <div class="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center text-2xl font-bold text-emerald-600 mb-4 group-hover:bg-emerald-600 group-hover:text-white transition-colors duration-300">3</div>
+                    <h4 class="font-bold text-lg">Reason</h4>
+                    <p class="text-sm text-center text-slate-500">LLM Ranking</p>
+                </div>
+                 <!-- Connector -->
+                 <div class="hidden md:block w-full h-1 bg-slate-200"></div>
+                <!-- Step 4 -->
+                <div class="flex-1 flex flex-col items-center group">
+                    <div class="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center text-2xl font-bold text-amber-600 mb-4 group-hover:bg-amber-600 group-hover:text-white transition-colors duration-300">4</div>
+                    <h4 class="font-bold text-lg">Visualize</h4>
+                    <p class="text-sm text-center text-slate-500">Data Analytics</p>
+                </div>
+                 <!-- Connector -->
+                 <div class="hidden md:block w-full h-1 bg-slate-200"></div>
+                <!-- Step 5 -->
+                <div class="flex-1 flex flex-col items-center group">
+                    <div class="w-16 h-16 rounded-full bg-rose-100 flex items-center justify-center text-2xl font-bold text-rose-600 mb-4 group-hover:bg-rose-600 group-hover:text-white transition-colors duration-300">5</div>
+                    <h4 class="font-bold text-lg">Correct</h4>
+                    <p class="text-sm text-center text-slate-500">HITL Feedback</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Architecture & Matching Logic -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="bg-white rounded-3xl shadow-lg p-8">
+                <h3 class="text-2xl font-bold text-slate-800 mb-4">The "Matchmaker" Engine</h3>
+                <p class="text-slate-600 mb-6">
+                    We use a sophisticated vector embedding approach. Business needs are converted into mathematical vectors and compared against software capabilities in high-dimensional space. The chart below visualizes how the <strong>Similarity Engine</strong> clusters user needs with relevant tools (e.g., CRM) while distancing them from irrelevant ones (e.g., HR).
+                </p>
+                <!-- Chart: Scatter Plot for Vector Similarity -->
+                <div class="chart-container">
+                    <canvas id="similarityChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-3xl shadow-lg p-8">
+                <h3 class="text-2xl font-bold text-slate-800 mb-4">Module Capabilities</h3>
+                <p class="text-slate-600 mb-6">The system is composed of four distinct intelligent agents working in concert.</p>
+                
+                <div class="space-y-4">
+                    <!-- Module Card 1 -->
+                    <div class="flex items-start p-4 bg-slate-50 rounded-lg hover:bg-indigo-50 transition-colors">
+                        <div class="flex-shrink-0 w-10 h-10 rounded bg-indigo-600 text-white flex items-center justify-center text-xl font-bold">A</div>
+                        <div class="ml-4">
+                            <h4 class="text-lg font-bold text-slate-800">The Dispatcher</h4>
+                            <p class="text-sm text-slate-600">Routes queries to semantic namespaces (e.g., "Lead Gen" &rarr; CRM Database).</p>
+                        </div>
+                    </div>
+                    <!-- Module Card 2 -->
+                    <div class="flex items-start p-4 bg-slate-50 rounded-lg hover:bg-sky-50 transition-colors">
+                        <div class="flex-shrink-0 w-10 h-10 rounded bg-sky-500 text-white flex items-center justify-center text-xl font-bold">B</div>
+                        <div class="ml-4">
+                            <h4 class="text-lg font-bold text-slate-800">The Analyst</h4>
+                            <p class="text-sm text-slate-600">Maps user problems found in uploaded PDFs to feature solutions in software docs.</p>
+                        </div>
+                    </div>
+                    <!-- Module Card 3 -->
+                    <div class="flex items-start p-4 bg-slate-50 rounded-lg hover:bg-amber-50 transition-colors">
+                        <div class="flex-shrink-0 w-10 h-10 rounded bg-amber-500 text-white flex items-center justify-center text-xl font-bold">C</div>
+                        <div class="ml-4">
+                            <h4 class="text-lg font-bold text-slate-800">The Matchmaker</h4>
+                            <p class="text-sm text-slate-600">Embedding similarity search followed by LLM-based re-ranking for nuance.</p>
+                        </div>
+                    </div>
+                     <!-- Module Card 4 -->
+                     <div class="flex items-start p-4 bg-slate-50 rounded-lg hover:bg-emerald-50 transition-colors">
+                        <div class="flex-shrink-0 w-10 h-10 rounded bg-emerald-500 text-white flex items-center justify-center text-xl font-bold">D</div>
+                        <div class="ml-4">
+                            <h4 class="text-lg font-bold text-slate-800">The Visualizer</h4>
+                            <p class="text-sm text-slate-600">Python-based agents generating on-the-fly charts for financial/feature comparisons.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Quality Assurance (RAGAS) -->
+        <section class="bg-indigo-900 text-white rounded-3xl shadow-2xl p-8 md:p-12 overflow-hidden relative">
+            <!-- Decorative circle -->
+            <div class="absolute -top-20 -right-20 w-64 h-64 bg-indigo-800 rounded-full blur-3xl opacity-50"></div>
+            
+            <div class="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h3 class="text-3xl font-bold mb-4">Trust is Metric-Driven</h3>
+                    <p class="text-indigo-200 mb-6 text-lg">
+                        We don't guess if the system works; we score it. Using the <strong>RAGAS Framework</strong>, we measure every interaction against three critical pillars: Faithfulness, Context Precision, and Answer Relevance.
+                    </p>
+                    <div class="space-y-4">
+                        <div class="bg-indigo-800 bg-opacity-50 p-4 rounded-lg border border-indigo-700">
+                            <span class="block text-xs font-bold text-indigo-300 uppercase">Metric 1</span>
+                            <span class="block text-xl font-bold">Faithfulness</span>
+                            <span class="block text-sm text-indigo-200">Did the bot hallucinate features?</span>
+                        </div>
+                        <div class="bg-indigo-800 bg-opacity-50 p-4 rounded-lg border border-indigo-700">
+                            <span class="block text-xs font-bold text-indigo-300 uppercase">Metric 2</span>
+                            <span class="block text-xl font-bold">Context Precision</span>
+                            <span class="block text-sm text-indigo-200">Did it cite the correct pricing PDF?</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="bg-white rounded-2xl p-4 shadow-xl text-slate-800">
+                        <h4 class="text-center font-bold mb-2">Performance vs. Standard RAG</h4>
+                        <div class="chart-container" style="height: 300px;">
+                            <canvas id="ragasChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 5: The Feedback Loop (HITL) -->
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="bg-white rounded-3xl shadow-lg p-8">
+                <h3 class="text-2xl font-bold text-slate-800 mb-4">Human-in-the-Loop (HITL)</h3>
+                <p class="text-slate-600 mb-6">
+                    Experts review recommendations. If the AI suggests a tool outside the budget, the expert corrects it. This creates a "Golden Dataset" that re-trains the model, creating a compound interest effect on accuracy.
+                </p>
+                <!-- Chart: Accuracy over time -->
+                <div class="chart-container">
+                    <canvas id="accuracyChart"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-gradient-to-br from-slate-100 to-slate-200 rounded-3xl shadow-lg p-8 border border-slate-300">
+                <h3 class="text-2xl font-bold text-slate-800 mb-6">Tech Stack Blueprint</h3>
+                <div class="grid grid-cols-1 gap-4">
+                    <!-- Tech Item -->
+                    <div class="flex items-center justify-between p-4 bg-white rounded-lg shadow-sm">
+                        <span class="font-bold text-slate-700">Frontend</span>
+                        <span class="px-3 py-1 bg-rose-100 text-rose-700 rounded-full text-sm font-semibold">Streamlit</span>
+                    </div>
+                    <!-- Tech Item -->
+                    <div class="flex items-center justify-between p-4 bg-white rounded-lg shadow-sm">
+                        <span class="font-bold text-slate-700">Orchestration</span>
+                        <span class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-semibold">LangChain / LlamaIndex</span>
+                    </div>
+                    <!-- Tech Item -->
+                    <div class="flex items-center justify-between p-4 bg-white rounded-lg shadow-sm">
+                        <span class="font-bold text-slate-700">Intelligence</span>
+                        <span class="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-semibold">GPT-4o / Claude 3.5</span>
+                    </div>
+                    <!-- Tech Item -->
+                    <div class="flex items-center justify-between p-4 bg-white rounded-lg shadow-sm">
+                        <span class="font-bold text-slate-700">Memory</span>
+                        <span class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-semibold">ChromaDB / Pinecone</span>
+                    </div>
+                    <!-- Tech Item -->
+                    <div class="flex items-center justify-between p-4 bg-white rounded-lg shadow-sm">
+                        <span class="font-bold text-slate-700">Evaluation</span>
+                        <span class="px-3 py-1 bg-sky-100 text-sky-700 rounded-full text-sm font-semibold">RAGAS Framework</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="bg-slate-900 text-slate-400 py-8 text-center rounded-t-3xl">
+            <p>&copy; 2025 Cuspera POC Strategy. Powered by Intelligent Systems.</p>
+        </footer>
+
+    </main>
+
+    <script>
+        // Label Wrapping Function (16 char limit)
+        function wrapLabel(label) {
+            if (label.length <= 16) return label;
+            const words = label.split(' ');
+            const lines = [];
+            let currentLine = words[0];
+
+            for (let i = 1; i < words.length; i++) {
+                if (currentLine.length + 1 + words[i].length <= 16) {
+                    currentLine += ' ' + words[i];
+                } else {
+                    lines.push(currentLine);
+                    currentLine = words[i];
+                }
+            }
+            lines.push(currentLine);
+            return lines;
+        }
+
+        // Global Chart Defaults
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.color = '#64748B';
+        
+        // --- Chart 1: RAGAS Radar Chart ---
+        const ragasCtx = document.getElementById('ragasChart').getContext('2d');
+        new Chart(ragasCtx, {
+            type: 'radar',
+            data: {
+                labels: ['Faithfulness', 'Context Precision', 'Answer Relevance', 'Retrieval Recall', 'Generation Robustness'],
+                datasets: [{
+                    label: 'Cuspera System (Proposed)',
+                    data: [95, 92, 96, 88, 90],
+                    backgroundColor: 'rgba(79, 70, 229, 0.2)', // Indigo
+                    borderColor: '#4F46E5',
+                    pointBackgroundColor: '#4F46E5',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#4F46E5'
+                }, {
+                    label: 'Standard Chatbot',
+                    data: [60, 45, 55, 50, 40],
+                    backgroundColor: 'rgba(148, 163, 184, 0.2)', // Slate
+                    borderColor: '#94A3B8',
+                    pointBackgroundColor: '#94A3B8',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#94A3B8'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        angleLines: { color: 'rgba(0, 0, 0, 0.1)' },
+                        grid: { color: 'rgba(0, 0, 0, 0.1)' },
+                        pointLabels: {
+                            font: { size: 11, weight: 'bold' },
+                            color: '#1E293B'
+                        },
+                        suggestedMin: 0,
+                        suggestedMax: 100
+                    }
+                },
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            title: function(tooltipItems) {
+                                const item = tooltipItems[0];
+                                let label = item.chart.data.labels[item.dataIndex];
+                                if (Array.isArray(label)) return label.join(' ');
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // --- Chart 2: Matchmaker Scatter Plot (Similarity) ---
+        const simCtx = document.getElementById('similarityChart').getContext('2d');
+        new Chart(simCtx, {
+            type: 'scatter',
+            data: {
+                datasets: [
+                    {
+                        label: 'User Need Vector',
+                        data: [{x: 4, y: 4}],
+                        backgroundColor: '#F59E0B', // Amber
+                        pointRadius: 8,
+                        pointHoverRadius: 10
+                    },
+                    {
+                        label: 'Matched Tools (CRM)',
+                        data: [{x: 3.8, y: 4.2}, {x: 4.2, y: 3.9}, {x: 3.5, y: 4.5}],
+                        backgroundColor: '#10B981', // Emerald
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    },
+                    {
+                        label: 'Unrelated Tools (HR)',
+                        data: [{x: -2, y: -1}, {x: -3, y: -2.5}, {x: -1.5, y: -3}],
+                        backgroundColor: '#CBD5E1', // Slate 300
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { display: false, min: -5, max: 5 },
+                    y: { display: false, min: -5, max: 5 }
+                },
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label;
+                            },
+                            title: function(tooltipItems) {
+                                // Dummy title for consistency requirement
+                                return "Vector Space Position";
+                            }
+                        }
+                    },
+                    annotation: {
+                        // Note: Annotation plugin not loaded in base example, but concept applies.
+                        // Ideally we'd draw a circle around the match area.
+                    }
+                }
+            }
+        });
+
+        // --- Chart 3: HITL Accuracy over Time (Line Chart) ---
+        const accCtx = document.getElementById('accuracyChart').getContext('2d');
+        
+        // Wrap labels for timeline
+        const rawTimeLabels = ['Initial POC Launch', 'Week 2 Feedback', 'Week 4 Feedback', 'Week 8 Golden Dataset', 'Production Ready'];
+        const wrappedTimeLabels = rawTimeLabels.map(wrapLabel);
+
+        new Chart(accCtx, {
+            type: 'line',
+            data: {
+                labels: wrappedTimeLabels,
+                datasets: [{
+                    label: 'Recommendation Accuracy %',
+                    data: [65, 72, 80, 89, 94],
+                    borderColor: '#0EA5E9', // Sky Blue
+                    backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#0EA5E9',
+                    pointRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        min: 50,
+                        max: 100,
+                        grid: { borderDash: [2, 4] }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            title: function(tooltipItems) {
+                                const item = tooltipItems[0];
+                                let label = item.chart.data.labels[item.dataIndex];
+                                if (Array.isArray(label)) return label.join(' ');
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

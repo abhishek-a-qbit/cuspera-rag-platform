@@ -1,0 +1,170 @@
+import React, { useState, useMemo } from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
+import { Users, Target, IndianRupee, TrendingUp, AlertCircle, PieChart } from 'lucide-react';
+
+const App = () => {
+  const [adSpend, setAdSpend] = useState(7000); // Out of 10,000
+  const [platform, setPlatform] = useState('bitrix'); // bitrix (free) vs zoho (paid)
+
+  // Simulation Constants
+  const AVG_CPC = 15; // Average Cost Per Click in INR for Social Media
+  const CONVERSION_RATE = 0.03; // 3% click-to-lead
+  
+  const analytics = useMemo(() => {
+    const clicks = Math.floor(adSpend / AVG_CPC);
+    const leads = Math.floor(clicks * CONVERSION_RATE);
+    
+    // Software costs
+    const softwareCost = platform === 'bitrix' ? 0 : 3000; // Simplified assumption
+    const remainingBudget = 10000 - adSpend - softwareCost;
+
+    // Efficiency Metrics for 50 users
+    const coverageRatio = platform === 'bitrix' ? 1 : 0.06; // 3 users / 50 users for Zoho free
+    const responseSpeed = platform === 'bitrix' ? "Fast (All 50 can respond)" : "Slow (Bottleneck at 3 users)";
+    
+    return {
+      clicks,
+      leads,
+      softwareCost,
+      remainingBudget,
+      coverageRatio,
+      responseSpeed,
+      cpl: leads > 0 ? (adSpend / leads).toFixed(2) : 0
+    };
+  }, [adSpend, platform]);
+
+  const chartData = [
+    { name: 'Week 1', leads: Math.floor(analytics.leads * 0.1) },
+    { name: 'Week 2', leads: Math.floor(analytics.leads * 0.3) },
+    { name: 'Week 3', leads: Math.floor(analytics.leads * 0.7) },
+    { name: 'Week 4', leads: analytics.leads },
+  ];
+
+  return (
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans">
+      <div className="max-w-6xl mx-auto space-y-6">
+        
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Lead Gen Analytics Engine</h1>
+            <p className="text-slate-500">Startup Budget: ₹10,000 | Team Size: 50</p>
+          </div>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setPlatform('bitrix')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${platform === 'bitrix' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}`}
+            >
+              Bitrix24 (Free)
+            </button>
+            <button 
+              onClick={() => setPlatform('zoho')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${platform === 'zoho' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}`}
+            >
+              Zoho (Paid/Limited)
+            </button>
+          </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard icon={<IndianRupee className="text-green-600" />} label="Est. Leads" value={analytics.leads} subtext={`₹${analytics.cpl} per lead`} />
+          <StatCard icon={<Target className="text-blue-600" />} label="Ad Clicks" value={analytics.clicks} subtext="at ₹15/click avg" />
+          <StatCard icon={<Users className="text-purple-600" />} label="User Coverage" value={`${(analytics.coverageRatio * 100).toFixed(0)}%`} subtext={`${platform === 'bitrix' ? '50/50' : '3/50'} users active`} />
+          <StatCard icon={<TrendingUp className="text-orange-600" />} label="Response Flow" value={analytics.responseSpeed} subtext="Efficiency Rating" />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Chart */}
+          <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+            <h3 className="text-lg font-semibold mb-6">Projected Lead Growth (Monthly)</h3>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} />
+                  <Tooltip contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
+                  <Line type="monotone" dataKey="leads" stroke="#4f46e5" strokeWidth={3} dot={{r: 6, fill: '#4f46e5', strokeWidth: 2, stroke: '#fff'}} activeDot={{r: 8}} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Budget Control */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+            <h3 className="text-lg font-semibold mb-4">Budget Strategy</h3>
+            <div className="space-y-6">
+              <div>
+                <label className="text-sm font-medium text-slate-700 block mb-2">
+                  Ad Spend (Lead Gen): ₹{adSpend.toLocaleString()}
+                </label>
+                <input 
+                  type="range" 
+                  min="1000" 
+                  max="10000" 
+                  step="500"
+                  value={adSpend}
+                  onChange={(e) => setAdSpend(parseInt(e.target.value))}
+                  className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                />
+              </div>
+
+              <div className="p-4 bg-slate-50 rounded-xl space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Software Cost:</span>
+                  <span className="font-semibold text-red-600">₹{analytics.softwareCost}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Ad Traffic Cost:</span>
+                  <span className="font-semibold text-slate-900">₹{adSpend}</span>
+                </div>
+                <div className="pt-2 border-t border-slate-200 flex justify-between font-bold text-slate-900">
+                  <span>Balance:</span>
+                  <span className={analytics.remainingBudget < 0 ? 'text-red-600' : 'text-green-600'}>
+                    ₹{analytics.remainingBudget}
+                  </span>
+                </div>
+              </div>
+
+              {analytics.remainingBudget < 0 && (
+                <div className="flex gap-2 p-3 bg-red-50 text-red-700 rounded-lg text-xs items-start">
+                  <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                  <p>Budget exceeded! Reduce ad spend or switch to a free software tier.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Tactical Recommendation */}
+        <div className="bg-indigo-900 text-white p-8 rounded-2xl shadow-xl overflow-hidden relative">
+          <div className="relative z-10">
+            <h2 className="text-xl font-bold mb-2">Strategic Verdict</h2>
+            <p className="text-indigo-100 max-w-2xl">
+              {platform === 'bitrix' 
+                ? "Bitrix24 enables all 50 users to act as lead responders. This 'Distributed Response' model reduces lead decay. Your ₹10,000 is 100% focused on getting clicks." 
+                : "Zoho CRM limits you to 3 users. In a 50-person startup, this creates a 'Lead Graveyard' where messages sit unanswered because the licensed users are busy. Avoid for now."}
+            </p>
+          </div>
+          <div className="absolute top-0 right-0 p-8 opacity-10">
+            <PieChart size={120} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const StatCard = ({ icon, label, value, subtext }) => (
+  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-start gap-4">
+    <div className="p-3 bg-slate-50 rounded-xl">{icon}</div>
+    <div>
+      <p className="text-sm font-medium text-slate-500">{label}</p>
+      <p className="text-xl font-bold text-slate-900">{value}</p>
+      <p className="text-xs text-slate-400 mt-1">{subtext}</p>
+    </div>
+  </div>
+);
+
+export default App;

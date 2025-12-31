@@ -1,0 +1,22 @@
+services:
+  # Backend API Service
+  - type: web
+    name: cuspera-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api_backend:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.7
+      - key: GOOGLE_API_KEY
+        sync: false
+    healthCheckPath: /health
+    autoDeploy: yes
+    
+  # Database (if needed for future scaling)
+  # - type: pserv
+  #   name: cuspera-db
+  #   plan: free
+  #   databaseName: cuspera
+  #   user: cuspera
