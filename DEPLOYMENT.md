@@ -40,9 +40,9 @@ git branch -M main
 git push -u origin main
 ```
 
-## 🔧 Step 2: Deploy Backend API to Render
+## Step 2: Deploy Backend API to Render
 
-### 2.1 Prepare for Render
+### 2.1 Prepare for Render (Backend API)
 1. Go to [Render](https://render.com)
 2. Sign up/login with GitHub
 3. Click "New" → "Web Service"
@@ -52,7 +52,7 @@ git push -u origin main
 **Build Settings:**
 - Runtime: `Python 3`
 - Build Command: `pip install -r requirements.txt`
-- Start Command: `uvicorn api_backend:app --host 0.0.0.0 --port $PORT`
+- Start Command: `python app.py`
 
 **Environment Variables:**
 - `GOOGLE_API_KEY`: Your Google Gemini API key

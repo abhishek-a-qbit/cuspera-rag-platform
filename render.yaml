@@ -1,5 +1,5 @@
 services:
-  # Backend API Service
+  # Backend API Service - Python Runtime (no Docker)
   - type: web
     name: cuspera-api
     runtime: python
