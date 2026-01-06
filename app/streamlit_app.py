@@ -523,16 +523,6 @@ def page_chat():
             </div>
             <div style="font-size: 3rem; animation: float 3s ease-in-out infinite; animation-delay: 1s;">🤖</div>
         </div>
-        
-        <!-- Add chaotic decorative elements -->
-        <div style="position: relative; height: 60px; margin: 20px 0;">
-            <div style="position: absolute; left: 10%; animation: float 4s ease-in-out infinite;">✨</div>
-            <div style="position: absolute; left: 30%; animation: float 4s ease-in-out infinite; animation-delay: 0.5s;">🌟</div>
-            <div style="position: absolute; left: 50%; animation: float 4s ease-in-out infinite; animation-delay: 1s;">💫</div>
-            <div style="position: absolute; left: 70%; animation: float 4s ease-in-out infinite; animation-delay: 1.5s;">⚡</div>
-            <div style="position: absolute; left: 90%; animation: float 4s ease-in-out infinite; animation-delay: 2s;">🔥</div>
-        </div>
-    </div>
     
     <!-- Add AI/6sense themed image -->
     <div style="text-align: center; margin: 20px 0;">
@@ -1656,7 +1646,7 @@ def page_status():
 # ==================== SIDEBAR ====================
 
 def sidebar():
-    """Enhanced sidebar navigation with fabulous styling."""
+    """Enhanced sidebar navigation with fabulous styling and comprehensive info."""
     # Custom sidebar header
     st.sidebar.markdown("""
     <div style="text-align: center; padding: 20px 0;">
@@ -1700,6 +1690,112 @@ def sidebar():
     
     st.sidebar.markdown("---")
     
+    # Enhanced Instructions Section
+    st.sidebar.markdown("""
+    <div class="insight-box floating-element">
+        <h4 style="color: #3b82f6; margin-bottom: 0.5rem;">📖 Quick Instructions</h4>
+        <div style="font-size: 0.9rem; line-height: 1.4;">
+            <p><strong>💬 Chat:</strong></p>
+            <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+                <li>Click suggested questions</li>
+                <li>Type your own questions</li>
+                <li>Get AI-powered answers</li>
+            </ul>
+            
+            <p><strong>📊 Analytics:</strong></p>
+            <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+                <li>Enter company details</li>
+                <li>Set budget & timeline</li>
+                <li>Get scenario analysis</li>
+            </ul>
+            
+            <p><strong>📋 Reports:</strong></p>
+            <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+                <li>Choose report type</li>
+                <li>Configure parameters</li>
+                <li>Generate strategic insights</li>
+            </ul>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.sidebar.markdown("---")
+    
+    # Enhanced About Section
+    st.sidebar.markdown("""
+    <div class="insight-box floating-element">
+        <h4 style="color: #3b82f6; margin-bottom: 0.5rem;">ℹ️ About Platform</h4>
+        <div style="font-size: 0.9rem; line-height: 1.4;">
+            <p><strong>Cuspera RAG Platform</strong> is an advanced AI-powered product intelligence system featuring:</p>
+            
+            <div style="margin: 1rem 0;">
+                <h5 style="color: #3b82f6; margin-bottom: 0.5rem;">🎯 Key Features</h5>
+                <ul style="margin: 0; padding-left: 1.5rem;">
+                    <li>🤖 Smart question suggestions</li>
+                    <li>📊 Real-time analytics</li>
+                    <li>📋 Strategic reports</li>
+                    <li>🔄 RAG pipeline integration</li>
+                    <li>🎨 Fabulous UI design</li>
+                </ul>
+            </div>
+            
+            <div style="margin: 1rem 0;">
+                <h5 style="color: #3b82f6; margin-bottom: 0.5rem;">🚀 Technology Stack</h5>
+                <ul style="margin: 0; padding-left: 1.5rem;">
+                    <li><strong>Frontend:</strong> Streamlit</li>
+                    <li><strong>Backend:</strong> FastAPI</li>
+                    <li><strong>AI:</strong> OpenAI GPT-4</li>
+                    <li><strong>Vector DB:</strong> ChromaDB</li>
+                    <li><strong>Framework:</strong> LangChain</li>
+                </ul>
+            </div>
+            
+            <div style="margin: 1rem 0;">
+                <h5 style="color: #3b82f6; margin-bottom: 0.5rem;">📈 Current Product</h5>
+                <p style="margin: 0; padding: 0.5rem; background: #f1f5f9; border-radius: 8px; text-align: center;">
+                    <strong>6sense Revenue AI™</strong><br>
+                    <span style="font-size: 0.8rem; color: #64748b;">B2B Revenue Intelligence Platform</span>
+                </p>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Product Info
+    st.sidebar.markdown("### 🎯 Product Details")
+    st.sidebar.markdown(f"""
+    <div class="source-badge floating-element" style="text-align: center; width: 100%;">
+        <strong>{PRODUCTS[DEFAULT_PRODUCT]['name']}</strong>
+        <div style="font-size: 0.8rem; margin-top: 0.5rem; opacity: 0.9;">
+            B2B Revenue AI Platform
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Quick Stats
+    st.sidebar.markdown("### 📊 Quick Stats")
+    col1, col2 = st.sidebar.columns(2)
+    with col1:
+        st.metric("Questions", "5+", delta="AI-generated")
+    with col2:
+        st.metric("API", "Ready", delta="Connected")
+    
+    # Footer
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("""
+    <div style="text-align: center; padding: 1rem 0; font-size: 0.8rem; color: #64748b;">
+        <p><strong>Version:</strong> 1.0.0</p>
+        <p><strong>© 2026</strong> Cuspera RAG Platform</p>
+        <p style="margin-top: 0.5rem;">
+            <strong>🔗</strong> 
+            <a href="https://github.com/abhishek-a-qbit/cuspera-rag-platform" 
+               style="color: #3b82f6; text-decoration: none;">
+                GitHub Repository
+            </a>
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
     # Enhanced Navigation
     st.sidebar.markdown("### 🧭 Navigation")
     page = st.sidebar.radio(
@@ -1707,32 +1803,6 @@ def sidebar():
         ["💬 Chat", "📊 Analytics", "📋 Reports", "⚙️ Status"],
         label_visibility="collapsed"
     )
-    
-    st.sidebar.markdown("---")
-    
-    # Enhanced About Section
-    st.sidebar.markdown("### 📖 About")
-    st.sidebar.markdown("""
-    <div class="insight-box floating-element">
-        <h4 style="color: #3b82f6; margin-bottom: 0.5rem;">Cuspera RAG Platform</h4>
-        <p style="margin: 0; font-size: 0.9rem;">
-            AI-powered product intelligence with:
-        </p>
-        <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
-            <li>💬 Natural language chat</li>
-            <li>📊 Scenario analytics</li>
-            <li>📋 Strategic reports</li>
-        </ul>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Product Info
-    st.sidebar.markdown("### 🎯 Current Product")
-    st.sidebar.markdown(f"""
-    <div class="source-badge floating-element" style="text-align: center; width: 100%;">
-        <strong>{PRODUCTS[DEFAULT_PRODUCT]['name']}</strong>
-    </div>
-    """, unsafe_allow_html=True)
     
     return page
 
