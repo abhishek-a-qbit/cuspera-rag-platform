@@ -988,75 +988,199 @@ def page_analytics():
                                 delta_color=delta_color
                             )
                     
-                    # Charts section
-                    st.markdown("#### 📈 Visual Analytics")
-                    
-                    # Create subplots
-                    fig = make_subplots(
-                        rows=2, cols=2,
-                        subplot_titles=("Budget Allocation", "Timeline Impact", "ROI Projection", "Feature Coverage"),
-                        specs=[[{"type": "pie"}, {"type": "bar"}],
-                               [{"type": "scatter"}, {"type": "bar"}]]
+                    # Enhanced Charts section with comprehensive visualizations
+                st.markdown("### 📈 Comprehensive Analytics Dashboard")
+                
+                # Investment Breakdown Chart
+                st.markdown("#### 💰 Investment Allocation")
+                investment_data = {
+                    "Platform Implementation": budget * 0.4,
+                    "Training & Onboarding": budget * 0.2,
+                    "Integration Services": budget * 0.15,
+                    "Marketing & Sales": budget * 0.15,
+                    "Ongoing Support": budget * 0.1
+                }
+                
+                fig_investment = go.Figure(data=[
+                    go.Pie(
+                        labels=list(investment_data.keys()),
+                        values=list(investment_data.values()),
+                        hole=0.3,
+                        marker_colors=["#3b82f6", "#10b981", "#f59e0b", "#eab308", "#8b5cf6"]
                     )
-                    
-                    # Budget Allocation Pie Chart
-                    fig.add_trace(
+                ])
+                fig_investment.update_layout(
+                    title="Investment Allocation Breakdown",
+                    font=dict(size=14),
+                    showlegend=True,
+                    legend=dict(orientation="h", yanchor="middle")
+                )
+                st.plotly_chart(fig_investment, use_container_width=True)
+                
+                # Revenue Projection Chart
+                st.markdown("#### 📈 Revenue Projections")
+                months = list(range(1, 25))
+                projected_revenue = [budget * 0.1 * (1 + 0.05 * (m/12)) for m in months]
+                baseline_revenue = [budget * 0.08 for m in months]
+                
+                fig_revenue = go.Figure()
+                fig_revenue.add_trace(go.Scatter(
+                    x=months,
+                    y=projected_revenue,
+                    mode='lines+markers',
+                    name='Projected Revenue',
+                    line=dict(color='#3b82f6', width=3),
+                    marker=dict(size=8, color='#3b82f6')
+                ))
+                fig_revenue.add_trace(go.Scatter(
+                    x=months,
+                    y=baseline_revenue,
+                    mode='lines',
+                    name='Baseline Revenue',
+                    line=dict(color='#94a3b8', width=2, dash='dash'),
+                    marker=dict(size=6, color='#94a3b8')
+                ))
+                fig_revenue.update_layout(
+                    title="Revenue Projection (24 months)",
+                    xaxis_title="Months",
+                    yaxis_title="Revenue (₹)",
+                    height=400,
+                    hovermode='x unified'
+                )
+                st.plotly_chart(fig_revenue, use_container_width=True)
+                
+                # Risk Assessment Chart
+                st.markdown("#### ⚠️ Risk Assessment")
+                fig_risk = go.Figure()
+                
+                # Create risk gauge chart
+                fig_risk.add_trace(go.Indicator(
+                    mode = "gauge+number+delta",
+                    value = 35,
+                    domain = {'x': [0, 1], 'y': [0, 1]},
+                    title = {'text': "Risk Score"},
+                    gauge = {
+                        'axis': {'range': [None, 100]},
+                        'bar': {'color': "rgba(34, 197, 94, 0.8)"},
+                        'steps': [
+                            {'range': [0, 30], 'color': "lightgreen"},
+                            {'range': [30, 70], 'color': "yellow"},
+                            {'range': [70, 100], 'color': "lightcoral"}
+                        ],
+                        'threshold': {
+                            'line': {'start': 70, 'end': 90, 'color': "red"}
+                        }
+                    }
+                ))
+                fig_risk.update_layout(height=300, margin=dict(l=0,r=0,b=0,t=0))
+                st.plotly_chart(fig_risk, use_container_width=True)
+                
+                # Competitive Analysis
+                st.markdown("#### 🏆 Competitive Analysis")
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("**Market Position**")
+                    st.info("**Challenger**")
+                    st.write("Market Share: 15%")
+                    st.write("Competitive Advantage: Advanced AI capabilities")
+                
+                with col2:
+                    st.markdown("**Key Competitors**")
+                    st.write("1. **Competitor A**")
+                    st.write("   Market Share: 25%")
+                    st.write("   Strength: Market leadership")
+                    st.write("   Weakness: Limited AI features")
+                    st.write("---")
+                    st.write("2. **Competitor B**")
+                    st.write("   Market Share: 20%")
+                    st.write("   Strength: Pricing")
+                    st.write("   Weakness: Integration complexity")
+                    st.write("---")
+                    st.write("3. **Competitor C**")
+                    st.write("   Market Share: 12%")
+                    st.write("   Strength: Customer service")
+                    st.write("   Weakness: Limited scalability")
+                    st.write("---")
+                
+                # ROI Timeline Chart
+                st.markdown("#### 💰 ROI Timeline Analysis")
+                roi_months = list(range(1, 13))
+                investment_curve = [budget] * 12
+                returns_curve = [budget * (1 + 0.15 * (m/12)) for m in roi_months]
+                
+                fig_roi = go.Figure()
+                fig_roi.add_trace(go.Scatter(
+                    x=roi_months,
+                    y=investment_curve,
+                    mode="lines",
+                    name="Investment",
+                    line=dict(color="#ef4444", width=3)
+                ))
+                fig_roi.add_trace(go.Scatter(
+                    x=roi_months,
+                    y=returns_curve,
+                    mode="lines",
+                    name="Projected Returns",
+                    line=dict(color="#10b981", width=3)
+                ))
+                fig_roi.update_layout(
+                    title="12-Month ROI Projection",
+                    xaxis_title="Months",
+                    yaxis_title="Amount (₹)",
+                    height=400,
+                    hovermode='x unified'
+                )
+                st.plotly_chart(fig_roi, use_container_width=True)
+                
+                # Market Analysis Charts
+                st.markdown("#### 🌍 Market Analysis")
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    # Market Size Pie Chart
+                    market_data = {
+                        "Current Market": 25,
+                        "Addressable Market": 45,
+                        "Target Market": 30
+                    }
+                    fig_market = go.Figure(data=[
                         go.Pie(
-                            labels=["Marketing", "Sales", "Operations", "Other"],
-                            values=[scenario_data["marketing_budget"], 
-                                   int(budget * 0.3), 
-                                   int(budget * 0.25), 
-                                   int(budget * 0.45 - scenario_data["marketing_budget"])],
-                            name="Budget"
-                        ),
-                        row=1, col=1
-                    )
-                    
-                    # Timeline Impact Bar Chart
-                    timeline_months = [3, 6, 12, 18, 24]
-                    expected_impact = [20, 45, 80, 120, 150]
-                    fig.add_trace(
-                        go.Bar(
-                            x=[f"{m}m" for m in timeline_months],
-                            y=expected_impact,
-                            name="Expected Impact %",
-                            marker_color="lightblue"
-                        ),
-                        row=1, col=2
-                    )
-                    
-                    # ROI Projection
-                    fig.add_trace(
-                        go.Scatter(
-                            x=timeline_months,
-                            y=[budget * (1 + expected_roi/100) * (m/12) for m in timeline_months],
-                            mode="lines+markers",
-                            name="Projected ROI",
-                            line=dict(color="green")
-                        ),
-                        row=2, col=1
-                    )
-                    
-                    # Feature Coverage
-                    if analytics.get("features"):
-                        feature_coverage = analytics["features"][:6]
-                        fig.add_trace(
-                            go.Bar(
-                                x=feature_coverage,
-                                y=[85, 92, 78, 88, 95, 82][:len(feature_coverage)],
-                                name="Coverage %",
-                                marker_color="orange"
-                            ),
-                            row=2, col=2
+                            labels=list(market_data.keys()),
+                            values=list(market_data.values()),
+                            hole=0.3,
+                            marker_colors=["#3b82f6", "#10b981", "#f59e0b"]
                         )
-                    
-                    fig.update_layout(
-                        height=600,
-                        showlegend=False,
-                        title_text="Analytics Dashboard"
+                    ])
+                    fig_market.update_layout(
+                        title="Market Segmentation",
+                        font=dict(size=12)
                     )
-                    
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig_market, use_container_width=True)
+                
+                with col2:
+                    # Growth Trend Line Chart
+                    growth_data = {
+                        "Q1": 15,
+                        "Q2": 22,
+                        "Q3": 28,
+                        "Q4": 35
+                    }
+                    fig_growth = go.Figure()
+                    fig_growth.add_trace(go.Scatter(
+                        x=list(growth_data.keys()),
+                        y=list(growth_data.values()),
+                        mode='lines+markers',
+                        name='Growth Rate',
+                        line=dict(color='#3b82f6', width=3),
+                        marker=dict(size=10, color='#3b82f6')
+                    ))
+                    fig_growth.update_layout(
+                        title="Quarterly Growth Projection",
+                        xaxis_title="Quarter",
+                        yaxis_title="Growth (%)",
+                        height=300
+                    )
+                    st.plotly_chart(fig_growth, use_container_width=True)
             
             # Enhanced Pricing Analysis
             if analytics.get("pricing"):
@@ -1523,161 +1647,6 @@ def page_reports():
                         st.metric("NPV", f"₹{budget * 2.5:,}", "+₹500K")
                     with col4:
                         st.metric("IRR", "28%", "+8% vs target")
-                
-                # Key Metrics Dashboard with Enhanced Visualizations
-                if analytics.get("metrics"):
-                    st.markdown("### 📊 Key Performance Metrics")
-                    
-                    # Create metric cards with better styling
-                    metrics_data = analytics["metrics"]
-                    col1, col2, col3, col4 = st.columns(4)
-                    
-                    with col1:
-                        st.markdown(f"""
-                        <div class="metric-card">
-                            <h4>🎯 Total Investment</h4>
-                            <h2>₹{metrics_data.get('total_investment', budget):,}</h2>
-                            <p>+12% vs industry avg</p>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    
-                    with col2:
-                        st.markdown(f"""
-                        <div class="metric-card">
-                            <h4>📈 Expected ROI</h4>
-                            <h2>{metrics_data.get('expected_roi', expected_roi):.1f}%</h2>
-                            <p>+8% vs target</p>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    
-                    with col3:
-                        st.markdown(f"""
-                        <div class="metric-card">
-                            <h4>⏱️ Payback Period</h4>
-                            <h2>{metrics_data.get('payback_period', 12)} months</h2>
-                            <p>2 months faster</p>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    
-                    with col4:
-                        st.markdown(f"""
-                        <div class="metric-card">
-                            <h4>💰 NPV</h4>
-                            <h2>₹{metrics_data.get('npv', budget * 2.5):,}</h2>
-                            <p>Positive cash flow</p>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    
-                    # Investment Breakdown Chart
-                    st.markdown("### 💰 Investment Allocation")
-                    investment_data = {
-                        "Platform Implementation": budget * 0.4,
-                        "Training & Onboarding": budget * 0.2,
-                        "Integration Services": budget * 0.15,
-                        "Marketing & Sales": budget * 0.15,
-                        "Ongoing Support": budget * 0.1
-                    }
-                    
-                    fig_investment = go.Figure(data=[
-                        go.Pie(
-                            labels=list(investment_data.keys()),
-                            values=list(investment_data.values()),
-                            hole=0.3,
-                            marker_colors=["#3b82f6", "#10b981", "#f59e0b", "#eab308", "#8b5cf6"]
-                        )
-                    ])
-                    fig_investment.update_layout(
-                        title="Investment Allocation",
-                        font=dict(size=14),
-                        showlegend=True,
-                        legend=dict(orientation="h", yanchor="middle")
-                    )
-                    st.plotly_chart(fig_investment, use_container_width=True)
-                    
-                    # Revenue Projection Chart
-                    st.markdown("### 📈 Revenue Projections")
-                    months = list(range(1, 25))
-                    projected_revenue = [budget * 0.1 * (1 + 0.05 * (m/12)) for m in months]
-                    baseline_revenue = [budget * 0.08 for m in months]
-                    
-                    fig_revenue = go.Figure()
-                    fig_revenue.add_trace(go.Scatter(
-                        x=months,
-                        y=projected_revenue,
-                        mode='lines+markers',
-                        name='Projected Revenue',
-                        line=dict(color='#3b82f6', width=3),
-                        marker=dict(size=8, color='#3b82f6')
-                    ))
-                    fig_revenue.add_trace(go.Scatter(
-                        x=months,
-                        y=baseline_revenue,
-                        mode='lines',
-                        name='Baseline Revenue',
-                        line=dict(color='#94a3b8', width=2, dash='dash'),
-                        marker=dict(size=6, color='#94a3b8')
-                    ))
-                    fig_revenue.update_layout(
-                        title="Revenue Projection (24 months)",
-                        xaxis_title="Months",
-                        yaxis_title="Revenue (₹)",
-                        height=400,
-                        hovermode='x unified'
-                    )
-                    st.plotly_chart(fig_revenue, use_container_width=True)
-                    
-                    # Risk Assessment Chart
-                    st.markdown("### ⚠️ Risk Assessment")
-                    fig_risk = go.Figure()
-                    
-                    # Create risk gauge chart
-                    fig_risk.add_trace(go.Indicator(
-                        mode = "gauge+number+delta",
-                        value = 35,
-                        domain = {'x': [0, 1], 'y': [0, 1]},
-                        title = {'text': "Risk Score"},
-                        gauge = {
-                            'axis': {'range': [None, 100]},
-                            'bar': {'color': "rgba(34, 197, 94, 0.8)"},
-                            'steps': [
-                                {'range': [0, 30], 'color': "lightgreen"},
-                                {'range': [30, 70], 'color': "yellow"},
-                                {'range': [70, 100], 'color': "lightcoral"}
-                            ],
-                            'threshold': {
-                                'line': {'start': 70, 'end': 90, 'color': "red"}
-                            }
-                        }
-                    ))
-                    fig_risk.update_layout(height=300, margin=dict(l=0,r=0,b=0,t=0))
-                    st.plotly_chart(fig_risk, use_container_width=True)
-                    
-                    # Competitive Analysis
-                    st.markdown("### 🏆 Competitive Analysis")
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.markdown("**Market Position**")
-                        st.info("**Challenger**")
-                        st.write("Market Share: 15%")
-                        st.write("Competitive Advantage: Advanced AI capabilities")
-                    
-                    with col2:
-                        st.markdown("**Key Competitors**")
-                        st.write("1. **Competitor A**")
-                        st.write("   Market Share: 25%")
-                        st.write("   Strength: Market leadership")
-                        st.write("   Weakness: Limited AI features")
-                        st.write("---")
-                        st.write("2. **Competitor B**")
-                        st.write("   Market Share: 20%")
-                        st.write("   Strength: Pricing")
-                        st.write("   Weakness: Integration complexity")
-                        st.write("---")
-                        st.write("3. **Competitor C**")
-                        st.write("   Market Share: 12%")
-                        st.write("   Strength: Customer service")
-                        st.write("   Weakness: Limited scalability")
-                        st.write("---")
                 
                 # Strategic Insights with Visual Elements
                 if report.get("insights"):
