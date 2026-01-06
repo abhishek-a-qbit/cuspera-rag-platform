@@ -51,7 +51,8 @@ st.set_page_config(
     page_title="Cuspera RAG Platform",
     page_icon="🚀",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
+    sidebar_width=400  # Make sidebar wider (1/4 of page)
 )
 
 # ==================== STYLES ====================
