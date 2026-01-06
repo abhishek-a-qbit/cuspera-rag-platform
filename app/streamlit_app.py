@@ -98,7 +98,43 @@ st.markdown("""
         100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
     }
     
-    /* Order Elements - Clean Structure */
+    /* Metric Cards - Enhanced Styling */
+    .metric-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        padding: 20px;
+        border-left: 5px solid #3b82f6;
+        border-radius: 15px;
+        margin: 15px 0;
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.05);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        text-align: center;
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+    }
+    
+    .metric-card h4 {
+        color: #1e293b !important;
+        margin-bottom: 0.5rem !important;
+        font-size: 1.1rem !important;
+    }
+    
+    .metric-card h2 {
+        color: #1e293b !important;
+        font-size: 1.8rem !important;
+        font-weight: 700;
+        margin: 0.5rem 0 !important;
+    }
+    
+    .metric-card p {
+        color: #334155 !important;
+        font-size: 0.9rem !important;
+        margin: 0 !important;
+    }
     .insight-box {
         background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
         padding: 20px;
@@ -114,6 +150,22 @@ st.markdown("""
     .insight-box:hover {
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+    }
+    
+    /* Enhanced readability for white text */
+    .insight-box h1, .insight-box h2, .insight-box h3, .insight-box h4, .insight-box h5 {
+        color: #1e293b !important;
+        margin-bottom: 0.75rem !important;
+    }
+    
+    .insight-box p, .insight-box li, .insight-box span {
+        color: #334155 !important;
+        line-height: 1.6 !important;
+    }
+    
+    .insight-box strong {
+        color: #1e293b !important;
+        font-weight: 600;
     }
     
     /* Source Badges - Organized Chaos */
@@ -1471,6 +1523,147 @@ def page_reports():
                         st.metric("NPV", f"₹{budget * 2.5:,}", "+₹500K")
                     with col4:
                         st.metric("IRR", "28%", "+8% vs target")
+                
+                # Key Metrics Dashboard with Enhanced Visualizations
+                if analytics.get("metrics"):
+                    st.markdown("### 📊 Key Performance Metrics")
+                    
+                    # Create metric cards with better styling
+                    metrics_data = analytics["metrics"]
+                    col1, col2, col3, col4 = st.columns(4)
+                    
+                    with col1:
+                        st.markdown("""
+                        <div class="metric-card">
+                            <h4>🎯 Total Investment</h4>
+                            <h2>₹{metrics_data.get('total_investment', 0):,}</h2>
+                            <p>+12% vs industry avg</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+                    with col2:
+                        st.markdown("""
+                        <div class="metric-card">
+                            <h4>📈 Expected ROI</h4>
+                            <h2>{metrics_data.get('expected_roi', 0):.1f}%</h2>
+                            <p>+8% vs target</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+                    with col3:
+                        st.markdown("""
+                        <div class="metric-card">
+                            <h4>⏱️ Payback Period</h4>
+                            <h2>{metrics_data.get('payback_period', 0)} months</h2>
+                            <p>2 months faster</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+                    with col4:
+                        st.markdown("""
+                        <div class="metric-card">
+                            <h4>💰 NPV</h4>
+                            <h2>₹{metrics_data.get('npv', 0):,}</h2>
+                            <p>Positive cash flow</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+                    # Investment Breakdown Chart
+                    st.markdown("### 💰 Investment Allocation")
+                    fig_investment = go.Figure(data=[
+                        go.Pie(
+                            labels=analytics.get("investment_breakdown", {}).keys(),
+                            values=analytics.get("investment_breakdown", {}).values(),
+                            hole=0.3,
+                            marker_colors=["#3b82f6", "#10b981", "#f59e0b", "#eab308", "#8b5cf6"]
+                        )
+                    ])
+                    fig_investment.update_layout(
+                        title="Investment Allocation",
+                        font=dict(size=14),
+                        showlegend=True,
+                        legend=dict(orientation="h", yanchor="middle")
+                    )
+                    st.plotly_chart(fig_investment, use_container_width=True)
+                    
+                    # Revenue Projection Chart
+                    st.markdown("### 📈 Revenue Projections")
+                    revenue_data = analytics.get("revenue_projections", {})
+                    if revenue_data:
+                        fig_revenue = go.Figure()
+                        fig_revenue.add_trace(go.Scatter(
+                            x=revenue_data.get("months", []),
+                            y=revenue_data.get("projected_revenue", []),
+                            mode='lines+markers',
+                            name='Projected Revenue',
+                            line=dict(color='#3b82f6', width=3),
+                            marker=dict(size=8, color='#3b82f6')
+                        ))
+                        fig_revenue.add_trace(go.Scatter(
+                            x=revenue_data.get("months", []),
+                            y=revenue_data.get("baseline_revenue", []),
+                            mode='lines',
+                            name='Baseline Revenue',
+                            line=dict(color='#94a3b8', width=2, dash='dash'),
+                            marker=dict(size=6, color='#94a3b8')
+                        ))
+                        fig_revenue.update_layout(
+                            title="Revenue Projection (24 months)",
+                            xaxis_title="Months",
+                            yaxis_title="Revenue (₹)",
+                            height=400,
+                            hovermode='x unified'
+                        )
+                        st.plotly_chart(fig_revenue, use_container_width=True)
+                    
+                    # Risk Assessment Chart
+                    st.markdown("### ⚠️ Risk Assessment")
+                    risk_data = analytics.get("risk_assessment", {})
+                    if risk_data:
+                        fig_risk = go.Figure()
+                        
+                        # Create risk gauge chart
+                        fig_risk.add_trace(go.Indicator(
+                            mode = "gauge+number+delta",
+                            value = risk_data.get("overall_risk_score", 50),
+                            domain = {'x': [0, 1], 'y': [0, 1]},
+                            title = {'text': "Risk Score"},
+                            gauge = {
+                                'axis': {'range': [None, 100]},
+                                'bar': {'color': "rgba(244, 67, 54, 0.8)"},
+                                'steps': [
+                                    {'range': [0, 30], 'color': "lightgreen"},
+                                    {'range': [30, 70], 'color': "yellow"},
+                                    {'range': [70, 100], 'color': "lightcoral"}
+                                ],
+                                'threshold': {
+                                    'line': {'start': 70, 'end': 90, 'color': "red"}
+                                }
+                            }
+                        ))
+                        fig_risk.update_layout(height=300, margin=dict(l=0,r=0,b=0,t=0))
+                        st.plotly_chart(fig_risk, use_container_width=True)
+                    
+                    # Competitive Analysis
+                    st.markdown("### 🏆 Competitive Analysis")
+                    competitive_data = analytics.get("competitive_analysis", {})
+                    if competitive_data:
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.markdown("**Market Position**")
+                            st.info(f"**{competitive_data.get('market_position', 'Challenger')}**")
+                            st.write(f"Market Share: {competitive_data.get('market_share', '0%')}")
+                            st.write(f"Competitive Advantage: {competitive_data.get('advantage', 'None')}")
+                        
+                        with col2:
+                            st.markdown("**Key Competitors**")
+                            competitors = competitive_data.get("competitors", [])
+                            for i, competitor in enumerate(competitors[:3]):
+                                st.write(f"{i+1}. **{competitor.get('name', 'Unknown')}**")
+                                st.write(f"   Market Share: {competitor.get('market_share', '0%')}")
+                                st.write(f"   Strength: {competitor.get('strength', 'Unknown')}")
+                                st.write(f"   Weakness: {competitor.get('weakness', 'Unknown')}")
+                                st.write("---")
                 
                 # Strategic Insights with Visual Elements
                 if report.get("insights"):
