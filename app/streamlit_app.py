@@ -1701,6 +1701,7 @@ def sidebar():
     st.sidebar.markdown("---")
     
     # Enhanced Instructions Section
+    st.sidebar.markdown("### 📖 Quick Instructions")
     st.sidebar.markdown("""
     <div class="insight-box floating-element">
         <h4 style="color: #3b82f6; margin-bottom: 0.5rem;">📖 Quick Instructions</h4>
@@ -1731,45 +1732,15 @@ def sidebar():
     
     st.sidebar.markdown("---")
     
-    # Enhanced About Section
-    st.sidebar.markdown("""
-    <div class="insight-box floating-element">
-        <h4 style="color: #3b82f6; margin-bottom: 0.5rem;">ℹ️ About Platform</h4>
-        <div style="font-size: 0.9rem; line-height: 1.4;">
-            <p><strong>Cuspera RAG Platform</strong> is an advanced AI-powered product intelligence system featuring:</p>
-            
-            <div style="margin: 1rem 0;">
-                <h5 style="color: #3b82f6; margin-bottom: 0.5rem;">🎯 Key Features</h5>
-                <ul style="margin: 0; padding-left: 1.5rem;">
-                    <li>🤖 Smart question suggestions</li>
-                    <li>📊 Real-time analytics</li>
-                    <li>📋 Strategic reports</li>
-                    <li>🔄 RAG pipeline integration</li>
-                    <li>🎨 Fabulous UI design</li>
-                </ul>
-            </div>
-            
-            <div style="margin: 1rem 0;">
-                <h5 style="color: #3b82f6; margin-bottom: 0.5rem;">🚀 Technology Stack</h5>
-                <ul style="margin: 0; padding-left: 1.5rem;">
-                    <li><strong>Frontend:</strong> Streamlit</li>
-                    <li><strong>Backend:</strong> FastAPI</li>
-                    <li><strong>AI:</strong> OpenAI GPT-4</li>
-                    <li><strong>Vector DB:</strong> ChromaDB</li>
-                    <li><strong>Framework:</strong> LangChain</li>
-                </ul>
-            </div>
-            
-            <div style="margin: 1rem 0;">
-                <h5 style="color: #3b82f6; margin-bottom: 0.5rem;">📈 Current Product</h5>
-                <p style="margin: 0; padding: 0.5rem; background: #f1f5f9; border-radius: 8px; text-align: center;">
-                    <strong>6sense Revenue AI™</strong><br>
-                    <span style="font-size: 0.8rem; color: #64748b;">B2B Revenue Intelligence Platform</span>
-                </p>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    # Enhanced Navigation
+    st.sidebar.markdown("### 🧭 Navigation")
+    page = st.sidebar.radio(
+        "",
+        ["💬 Chat", "📊 Analytics", "📋 Reports", "⚙️ Status"],
+        label_visibility="collapsed"
+    )
+    
+    st.sidebar.markdown("---")
     
     # Product Info
     st.sidebar.markdown("### 🎯 Product Details")
@@ -1795,9 +1766,7 @@ def sidebar():
     st.sidebar.markdown("""
     <div style="text-align: center; padding: 1rem 0; font-size: 0.8rem; color: #64748b;">
         <p><strong>Version:</strong> 1.0.0</p>
-        <p><strong>© 2026</strong> Cuspera RAG Platform</p>
-        <p style="margin-top: 0.5rem;">
-            <strong>🔗</strong> 
+        <p><strong>🔗</strong> 
             <a href="https://github.com/abhishek-a-qbit/cuspera-rag-platform" 
                style="color: #3b82f6; text-decoration: none;">
                 GitHub Repository
@@ -1805,14 +1774,6 @@ def sidebar():
         </p>
     </div>
     """, unsafe_allow_html=True)
-    
-    # Enhanced Navigation
-    st.sidebar.markdown("### 🧭 Navigation")
-    page = st.sidebar.radio(
-        "",
-        ["💬 Chat", "📊 Analytics", "📋 Reports", "⚙️ Status"],
-        label_visibility="collapsed"
-    )
     
     return page
 
