@@ -369,8 +369,7 @@ def display_suggested_questions():
                 q_data['question'], 
                 key=f"q_{i}",
                 use_container_width=True,
-                type=button_type if button_type == "primary" else None,
-                label=f"Question {i}: {q_data['question'][:50]}..."
+                type=button_type if button_type == "primary" else None
             ):
                 st.session_state.chat_history.append({"role": "user", "content": q_data['question']})
                 st.rerun()
@@ -687,7 +686,7 @@ def page_chat():
             label_visibility="collapsed"
         )
     with col2:
-        send_button = st.button("📤 Send", type="primary", use_container_width=True, label="Send Message")
+        send_button = st.button("📤 Send", type="primary", use_container_width=True)
     
     if send_button and user_input:
         # Add to history
@@ -726,7 +725,7 @@ def page_chat():
                 cols = st.columns(min(3, len(follow_ups)))
                 for i, followup in enumerate(follow_ups):
                     with cols[i % 3]:
-                        if st.button(followup, key=f"followup_{i}", use_container_width=True, label=f"Follow-up: {followup[:30]}..."):
+                        if st.button(followup, key=f"followup_{i}", use_container_width=True):
                             st.session_state.chat_history.append({"role": "user", "content": followup})
                             st.rerun()
         
@@ -737,7 +736,7 @@ def page_chat():
         st.markdown("---")
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            if st.button("🔄 Clear History", use_container_width=True, label="Clear Chat History"):
+            if st.button("🔄 Clear History", use_container_width=True):
                 st.session_state.chat_history = []
                 st.rerun()
 
