@@ -100,18 +100,20 @@ st.markdown("""
     
     /* Order Elements - Clean Structure */
     .insight-box {
-        background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
         padding: 20px;
         border-left: 5px solid #3b82f6;
         border-radius: 15px;
         margin: 15px 0;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.05);
         transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
     }
     
     .insight-box:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
     }
     
     /* Source Badges - Organized Chaos */
