@@ -1,12 +1,13 @@
 import chromadb
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from typing import List, Dict, Any
 import sys
 import os
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from config import CHROMA_DB_PATH, COLLECTION_NAME, GOOGLE_API_KEY, TOP_K_RETRIEVAL
+from config import CHROMA_DB_PATH, COLLECTION_NAME, GOOGLE_API_KEY, OPENAI_API_KEY, USE_OPENAI_EMBEDDINGS, TOP_K_RETRIEVAL
 from data_loader import create_searchable_text
 from hybrid_search import HybridSearcher
 
@@ -14,7 +15,7 @@ from hybrid_search import HybridSearcher
 class VectorStore:
     """Vector store for managing embeddings and retrieval."""
     
-    def __init__(self, use_hybrid: bool = True, semantic_weight: float = 0.6, keyword_weight: float = 0.4):
+    def __init__(self, use_hybrid: bool = False, semantic_weight: float = 0.6, keyword_weight: float = 0.4):
         """Initialize the vector store with ChromaDB and Google embeddings.
         
         Args:
@@ -22,11 +23,22 @@ class VectorStore:
             semantic_weight: Weight for semantic similarity (0-1)
             keyword_weight: Weight for keyword matching (0-1)
         """
-        # Initialize embeddings with Google (faster than HuggingFace)
-        self.embeddings = GoogleGenerativeAIEmbeddings(
-            model="models/embedding-001",
-            google_api_key=GOOGLE_API_KEY
-        )
+        # Initialize embeddings with OpenAI or Google
+        if USE_OPENAI_EMBEDDINGS and OPENAI_API_KEY:
+            print("[EMBEDDINGS] Using OpenAI embeddings")
+            self.embeddings = OpenAIEmbeddings(
+                model="text-embedding-3-small",
+                api_key=OPENAI_API_KEY
+            )
+        elif GOOGLE_API_KEY:
+            print("[EMBEDDINGS] Using Google embeddings")
+            self.embeddings = GoogleGenerativeAIEmbeddings(
+                model="models/embedding-001",
+                google_api_key=GOOGLE_API_KEY
+            )
+        else:
+            print("[EMBEDDINGS] No API key found - embeddings disabled")
+            self.embeddings = None
         
         # Initialize ChromaDB
         self.client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
@@ -65,6 +77,10 @@ class VectorStore:
         if self.collection is None:
             self.create_collection()
         
+        if not documents:
+            print("[WARNING] No documents to index. Creating empty collection.")
+            return
+        
         # Prepare documents for indexing
         ids = []
         texts = []
@@ -85,10 +101,13 @@ class VectorStore:
         print(f"Indexed {len(documents)} documents into vector store")
         
         # Build hybrid search indices
-        if self.use_hybrid and self.hybrid_searcher:
-            self.hybrid_searcher.collection = self.collection
-            self.hybrid_searcher.build_keyword_index(documents)
-            print(f"[OK] Hybrid search ready (semantic + keyword)")
+        if self.use_hybrid:
+            if self.hybrid_searcher:
+                # Initialize hybrid searcher with collection
+                self.hybrid_searcher.initialize(documents=documents)
+                print(f"[OK] Hybrid search ready (semantic + keyword)")
+            else:
+                print("[WARNING] Hybrid search disabled - searcher not initialized")
     
     def retrieve(self, query: str, top_k: int = TOP_K_RETRIEVAL) -> List[Dict[str, Any]]:
         """Retrieve top-k relevant documents for a query."""

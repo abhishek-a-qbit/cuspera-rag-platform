@@ -39,7 +39,7 @@ class HybridSearcher:
         self.bm25_index = None
         self.documents = []
     
-    def initialize(self, db_path: str = "./chroma_db", collection_name: str = "cuspera"):
+    def initialize(self, db_path: str = "./chroma_db", collection_name: str = "cuspera", documents: List[Dict[str, Any]] = None):
         """Initialize vector store and keyword index."""
         # Initialize embeddings
         self.embeddings = GoogleGenerativeAIEmbeddings(
@@ -50,6 +50,10 @@ class HybridSearcher:
         # Initialize ChromaDB
         self.chromadb_client = chromadb.PersistentClient(path=db_path)
         self.collection = self.chromadb_client.get_collection(name=collection_name)
+        
+        # Build keyword index if documents provided
+        if documents:
+            self.build_keyword_index(documents)
         
         print("[OK] Hybrid searcher initialized")
     

@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from data_loader import load_all_datasets
 from vector_store import VectorStore
-from rag_graph import create_rag_graph, run_rag_query
+from rag_graph import create_rag_graph, create_enhanced_rag_graph, create_persistent_rag_graph
 from config import DATABASE_PATH, GOOGLE_API_KEY
 
 # Load environment
@@ -64,38 +64,32 @@ class ReportRequest(BaseModel):
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize RAG system on startup."""
+    """Initialize persistent RAG system on startup."""
     global rag_graph, vector_store, product_meta
     
     print("\n" + "="*60)
-    print("Initializing Cuspera RAG Backend")
+    print("Initializing Persistent Cuspera RAG Backend")
     print("="*60)
     
-    if not GOOGLE_API_KEY:
-        raise ValueError("GOOGLE_API_KEY not found in .env")
+    # Check for API keys
+    if not os.getenv("OPENAI_API_KEY") and not os.getenv("GOOGLE_API_KEY"):
+        raise ValueError("Neither OPENAI_API_KEY nor GOOGLE_API_KEY found in .env")
     
-    # Load datasets
-    print("\n[1/3] Loading product datasets...")
-    documents = load_all_datasets("../Database")
+    # Create persistent RAG graph with caching
+    print("\n[1/3] Creating persistent RAG system with caching...")
+    rag_graph = create_persistent_rag_graph(use_persistent=True, force_reprocess=False)
     
     # Extract product metadata
     product_meta = {
         "canonical_name": "6sense Revenue AI",
         "domain": "6sense.com",
-        "total_documents": len(documents),
-        "datasets": 23
+        "persistent_caching": True,
+        "enhanced_chunking": True,
+        "hybrid_search": False,  # Disabled for stability
+        "openai_embeddings": os.getenv("OPENAI_API_KEY") is not None
     }
     
-    # Initialize vector store
-    print("\n[2/3] Setting up vector store...")
-    vector_store = VectorStore()
-    vector_store.index_documents(documents)
-    
-    # Create RAG graph
-    print("\n[3/3] Creating RAG pipeline...")
-    rag_graph = create_rag_graph(vector_store)
-    
-    print("\n[OK] Backend Ready!")
+    print("\n[OK] Persistent Backend Ready!")
     print("="*60)
 
 
@@ -207,6 +201,39 @@ async def chat_endpoint(request: ChatMessage):
         print(f"\n[ERROR] Chat endpoint failed:\n{error_details}")
         raise HTTPException(status_code=500, detail=f"Chat failed: {str(e)}")
 
+
+@app.post("/reprocess")
+async def reprocess_endpoint():
+    """Force reprocessing of all documents."""
+    try:
+        print("[REPROCESS] Forcing reprocessing of all documents...")
+        rag_graph = create_persistent_rag_graph(use_persistent=True, force_reprocess=True)
+        
+        return {
+            "success": True,
+            "message": "Documents reprocessed successfully",
+            "rag_ready": rag_graph is not None
+        }
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"\n[ERROR] Reprocess failed:\n{error_details}")
+        raise HTTPException(status_code=500, detail=f"Reprocess failed: {str(e)}")
+
+@app.get("/cache_status")
+async def cache_status_endpoint():
+    """Get cache status and statistics."""
+    try:
+        from persistent_vector_store import PersistentVectorStore
+        temp_store = PersistentVectorStore()
+        stats = temp_store.get_collection_stats()
+        
+        return {
+            "success": True,
+            "cache_status": stats
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Cache status failed: {str(e)}")
 
 @app.post("/analytics")
 async def analytics_endpoint(request: AnalyticsRequest):

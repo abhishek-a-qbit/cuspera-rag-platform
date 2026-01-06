@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List, Dict, Any
 
 def load_all_datasets(database_path: str) -> List[Dict[str, Any]]:
-    """Load all JSON datasets from the database folder."""
+    """Load all JSON datasets from the database folder (dataset_1 and dataset_2)."""
     documents = []
     database_dir = Path(database_path)
     doc_counter = 0  # Counter for generating unique IDs
@@ -12,65 +12,85 @@ def load_all_datasets(database_path: str) -> List[Dict[str, Any]]:
     if not database_dir.exists():
         raise FileNotFoundError(f"Database path {database_path} does not exist")
     
-    # Get all JSON files sorted by name
-    json_files = sorted(database_dir.glob("*.json"))
+    # Look for dataset folders
+    dataset_folders = []
+    for folder in ['dataset_1', 'dataset_2']:
+        folder_path = database_dir / folder
+        if folder_path.exists():
+            dataset_folders.append(folder_path)
     
-    print(f"Found {len(json_files)} JSON files in {database_path}")
+    if not dataset_folders:
+        # Fallback to old structure (direct JSON files)
+        json_files = sorted(database_dir.glob("*.json"))
+        print(f"Found {len(json_files)} JSON files in {database_path}")
+        dataset_folders = [database_dir]
+    else:
+        print(f"Found dataset folders: {[f.name for f in dataset_folders]}")
     
-    for json_file in json_files:
-        try:
-            with open(json_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            
-            # Extract dataset info from meta
-            meta = data.get("meta", {})
-            dataset_id = meta.get("datasetId", json_file.stem)
-            product_name = meta.get("canonicalProductName", "Unknown")
-            
-            # Process data items
-            items = data.get("data", [])
-            if isinstance(items, dict):
-                # If data is a dict, convert to list
-                items = [items]
-            elif isinstance(items, str):
-                # If it's a string, skip
-                continue
-            
-            for idx, item in enumerate(items):
-                if isinstance(item, str):
-                    # Skip if item is string
+    total_files = 0
+    
+    for dataset_folder in dataset_folders:
+        # Get all JSON files in this dataset folder
+        json_files = sorted(dataset_folder.glob("*.json"))
+        total_files += len(json_files)
+        
+        print(f"Loading {len(json_files)} files from {dataset_folder.name}")
+        
+        for json_file in json_files:
+            try:
+                with open(json_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                
+                # Extract dataset info from meta
+                meta = data.get("meta", {})
+                dataset_id = meta.get("datasetId", json_file.stem)
+                product_name = meta.get("canonicalProductName", "Unknown")
+                
+                # Process data items
+                items = data.get("data", [])
+                if isinstance(items, dict):
+                    # If data is a dict, convert to list
+                    items = [items]
+                elif isinstance(items, str):
+                    # If it's a string, skip
                     continue
+                
+                for idx, item in enumerate(items):
+                    if isinstance(item, str):
+                        # Skip if item is string
+                        continue
+                        
+                    doc_counter += 1
                     
-                doc_counter += 1
-                
-                # Create a document with searchable content
-                doc = {
-                    "id": f"{json_file.stem}_{idx}_{doc_counter}",  # Generate unique ID
-                    "dataset_id": dataset_id,
-                    "product_name": product_name,
-                    "source_file": json_file.name,
-                    "content": json.dumps(item, indent=2),  # Full item as content
-                    "metadata": {
-                        "dataset": dataset_id,
-                        "product": product_name,
-                        "source_file": json_file.name
+                    # Create a document with searchable content
+                    doc = {
+                        "id": f"{json_file.stem}_{idx}_{doc_counter}",  # Generate unique ID
+                        "dataset_id": dataset_id,
+                        "product_name": product_name,
+                        "dataset_folder": dataset_folder.name,  # Track which dataset folder
+                        "source_file": json_file.name,  # Track source file
+                        "content": json.dumps(item, indent=2),  # Full item as content
+                        "metadata": {
+                            "dataset": dataset_id,
+                            "product": product_name,
+                            "source_file": json_file.name
+                        }
                     }
-                }
                 
-                # Add type-specific metadata
-                if "type" in item:
-                    doc["metadata"]["type"] = item["type"]
-                if "label" in item:
-                    doc["metadata"]["label"] = item["label"]
-                if "question" in item:
-                    doc["metadata"]["question"] = item["question"]
+                    # Add type-specific metadata
+                    if "type" in item:
+                        doc["metadata"]["type"] = item["type"]
+                    if "label" in item:
+                        doc["metadata"]["label"] = item["label"]
+                    if "question" in item:
+                        doc["metadata"]["question"] = item["question"]
+                    
+                    documents.append(doc)
                 
-                documents.append(doc)
-            
-            print(f"[OK] Loaded {len(items)} items from {json_file.name}")
-            
-        except Exception as e:
-            print(f"[ERROR] Error loading {json_file.name}: {str(e)}")
+                print(f"[OK] Loaded {len(items)} items from {json_file.name}")
+                
+            except Exception as e:
+                print(f"[ERROR] Error loading {json_file.name}: {str(e)}")
     
     print(f"\nTotal documents processed: {len(documents)}")
     return documents
