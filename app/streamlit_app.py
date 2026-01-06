@@ -1701,32 +1701,32 @@ def sidebar():
     st.sidebar.markdown("---")
     
     # Enhanced Instructions Section
-    st.sidebar.markdown("### 📖 Quick Instructions")
+    st.sidebar.markdown("### ℹ️ About Platform")
     st.sidebar.markdown("""
     <div class="insight-box floating-element">
-        <h4 style="color: #3b82f6; margin-bottom: 0.5rem;">📖 Quick Instructions</h4>
-        <div style="font-size: 0.9rem; line-height: 1.4;">
-            <p><strong>💬 Chat:</strong></p>
-            <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
-                <li>Click suggested questions</li>
-                <li>Type your own questions</li>
-                <li>Get AI-powered answers</li>
-            </ul>
-            
-            <p><strong>📊 Analytics:</strong></p>
-            <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
-                <li>Enter company details</li>
-                <li>Set budget & timeline</li>
-                <li>Get scenario analysis</li>
-            </ul>
-            
-            <p><strong>📋 Reports:</strong></p>
-            <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
-                <li>Choose report type</li>
-                <li>Configure parameters</li>
-                <li>Generate strategic insights</li>
-            </ul>
-        </div>
+        <h4 style="color: #3b82f6; margin-bottom: 0.5rem;">🎯 Key Features</h4>
+        <ul style="margin: 0; padding-left: 1.5rem;">
+            <li>🤖 Smart question suggestions</li>
+            <li>📊 Real-time analytics</li>
+            <li>📋 Strategic reports</li>
+            <li>🔄 RAG pipeline integration</li>
+            <li>🎨 Fabulous UI design</li>
+        </ul>
+        
+        <h5 style="color: #3b82f6; margin-bottom: 0.5rem;">🚀 Technology Stack</h5>
+        <ul style="margin: 0; padding-left: 1.5rem;">
+            <li><strong>Frontend:</strong> Streamlit</li>
+            <li><strong>Backend:</strong> FastAPI</li>
+            <li><strong>AI:</strong> OpenAI GPT-4</li>
+            <li><strong>Vector DB:</strong> ChromaDB</li>
+            <li><strong>Framework:</strong> LangChain</li>
+        </ul>
+        
+        <h5 style="color: #3b82f6; margin-bottom: 0.5rem;">📈 Current Product</h5>
+        <p style="margin: 0; padding: 0.5rem; background: #f1f5f9; border-radius: 8px; text-align: center;">
+            <strong>6sense Revenue AI™</strong><br>
+            <span style="font-size: 0.8rem; color: #64748b;">B2B Revenue Intelligence Platform</span>
+        </p>
     </div>
     """, unsafe_allow_html=True)
     
