@@ -147,44 +147,17 @@ st.markdown("""
     
     /* Headers - Bold & Dynamic */
     .stHeader {
-        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-        padding: 2rem;
-        border-radius: 0 0 30px 30px;
-        color: white;
-        box-shadow: 0 10px 30px rgba(59, 130, 246, 0.4);
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .stHeader::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="75" cy="75" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="10" r="0.5" fill="rgba(255,255,255,0.05)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
-        opacity: 0.3;
-    }
-    
-    /* Sidebar - Clean Order */
-    .css-1d391kg {
-        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-        border-right: 1px solid #e2e8f0;
-    }
-    
-    /* Buttons - Dynamic Chaos */
     .stButton > button {
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
         color: white;
         border: none;
         border-radius: 12px;
         padding: 12px 24px;
         font-weight: 600;
-        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
-        transition: all 0.3s ease;
         position: relative;
         overflow: hidden;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
     
     .stButton > button::before {
@@ -197,7 +170,7 @@ st.markdown("""
         background: rgba(255, 255, 255, 0.3);
         border-radius: 50%;
         transform: translate(-50%, -50%);
-        transition: width 0.6s ease, height 0.6s ease;
+        transition: width 0.6s, height 0.6s;
     }
     
     .stButton > button:hover::before {
@@ -207,89 +180,23 @@ st.markdown("""
     
     .stButton > button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 30px rgba(59, 130, 246, 0.5);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
     }
     
-    /* Input Fields - Clean Order */
-    .stTextInput > div > div > input,
-    .stSelectbox > div > div > select,
-    .stSlider > div > div > input {
-        background: white;
+    /* Enhanced input fields */
+    .stTextInput > div > div > input {
+        border-radius: 12px;
         border: 2px solid #e2e8f0;
-        border-radius: 10px;
-        padding: 12px;
+        padding: 12px 16px;
         transition: all 0.3s ease;
+        background: rgba(255, 255, 255, 0.9);
     }
     
-    .stTextInput > div > div > input:focus,
-    .stSelectbox > div > div > select:focus,
-    .stSlider > div > div > input:focus {
+    .stTextInput > div > div > input:focus {
         border-color: #3b82f6;
         box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-    }
-    
-    /* Expander - Structured Chaos */
-    .streamlit-expanderHeader {
-        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-        border-radius: 12px;
-        border: 1px solid #cbd5e1;
-        font-weight: 600;
-        color: #1e293b;
-    }
-    
-    /* Chat Messages - Balanced Design */
-    .chat-message {
-        padding: 15px 20px;
-        border-radius: 18px;
-        margin: 10px 0;
-        max-width: 80%;
-        position: relative;
-    }
-    
-    .user-message {
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-        color: white;
-        margin-left: auto;
-        box-shadow: 0 5px 15px rgba(59, 130, 246, 0.3);
-    }
-    
-    .assistant-message {
-        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-        color: #1e293b;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-    }
-    
-    /* Success/Error Messages - Clean */
-    .stSuccess {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        border-radius: 12px;
-        padding: 15px;
-        color: white;
-    }
-    
-    .stError {
-        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-        border-radius: 12px;
-        padding: 15px;
-        color: white;
-    }
-    
-    /* Info Box - Balanced */
-    .stInfo {
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-        border-radius: 12px;
-        padding: 15px;
-        color: white;
-        box-shadow: 0 5px 15px rgba(59, 130, 246, 0.3);
-    }
-    
-    /* Charts Container - Clean Order */
-    .stPlotlyChart {
         background: white;
-        border-radius: 15px;
-        padding: 20px;
-        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
         border: 1px solid #e2e8f0;
     }
     
@@ -462,7 +369,8 @@ def display_suggested_questions():
                 q_data['question'], 
                 key=f"q_{i}",
                 use_container_width=True,
-                type=button_type if button_type == "primary" else None
+                type=button_type if button_type == "primary" else None,
+                label=f"Question {i}: {q_data['question'][:50]}..."
             ):
                 st.session_state.chat_history.append({"role": "user", "content": q_data['question']})
                 st.rerun()
@@ -601,22 +509,44 @@ def display_metrics(kpis: List[Dict]) -> None:
 
 def page_chat():
     """Chat interface with product routing and suggested questions."""
-    # Custom header with gradient and animation
+    # Enhanced header with images and chaos
     st.markdown("""
-    <div class="floating-element">
-        <h1 style="text-align: center; font-size: 2.5rem; font-weight: 700; 
-                   background: linear-gradient(135deg, #3b82f6, #1d4ed8); 
-                   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-                   margin-bottom: 0.5rem;">
-            💬 Chat Consultant
-        </h1>
-        <p style="text-align: center; color: #64748b; font-size: 1.1rem;">
-            Ask questions about **6sense Revenue AI**. Get AI-powered answers grounded in real data.
+    <div class="floating-element" style="text-align: center; padding: 20px 0;">
+        <div style="display: flex; justify-content: center; align-items: center; gap: 20px; margin-bottom: 20px;">
+            <div style="font-size: 3rem; animation: float 3s ease-in-out infinite;">🚀</div>
+            <div>
+                <h1 class="enhanced-header" style="font-size: 2.5rem; margin: 0;">
+                    💬 Chat Consultant
+                </h1>
+                <p style="color: #64748b; font-size: 1.1rem; margin: 10px 0 0 0;">
+                    Ask questions about **6sense Revenue AI**. Get AI-powered answers grounded in real data.
+                </p>
+            </div>
+            <div style="font-size: 3rem; animation: float 3s ease-in-out infinite; animation-delay: 1s;">🤖</div>
+        </div>
+        
+        <!-- Add chaotic decorative elements -->
+        <div style="position: relative; height: 60px; margin: 20px 0;">
+            <div style="position: absolute; left: 10%; animation: float 4s ease-in-out infinite;">✨</div>
+            <div style="position: absolute; left: 30%; animation: float 4s ease-in-out infinite; animation-delay: 0.5s;">🌟</div>
+            <div style="position: absolute; left: 50%; animation: float 4s ease-in-out infinite; animation-delay: 1s;">💫</div>
+            <div style="position: absolute; left: 70%; animation: float 4s ease-in-out infinite; animation-delay: 1.5s;">⚡</div>
+            <div style="position: absolute; left: 90%; animation: float 4s ease-in-out infinite; animation-delay: 2s;">🔥</div>
+        </div>
+    </div>
+    
+    <!-- Add AI/6sense themed image -->
+    <div style="text-align: center; margin: 20px 0;">
+        <img src="https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&h=200&fit=crop&auto=format" 
+             alt="AI Technology" 
+             style="width: 100%; max-width: 800px; height: 200px; object-fit: cover; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.1);">
+        <p style="margin-top: 10px; color: #64748b; font-style: italic;">
+            🤖 Advanced AI-powered conversation system with real-time insights
         </p>
     </div>
     """, unsafe_allow_html=True)
     
-    # Product selector (ready for future expansion)
+    # Product selector with enhanced styling
     if len(PRODUCTS) > 1:
         selected_product = st.selectbox(
             "🎯 Select Product:",
@@ -628,45 +558,126 @@ def page_chat():
         selected_product = DEFAULT_PRODUCT
         st.markdown(f"""
         <div class="insight-box floating-element">
-            <h4 style="color: #3b82f6; margin-bottom: 0.5rem;">🎯 Currently Analyzing</h4>
-            <p style="font-size: 1.2rem; font-weight: 600; color: #1e293b; margin: 0;">
-                {PRODUCTS[selected_product]['name']}
-            </p>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div style="font-size: 2rem;">🎯</div>
+                <div>
+                    <h4 style="color: #3b82f6; margin-bottom: 0.5rem;">Currently Analyzing</h4>
+                    <p style="font-size: 1.2rem; font-weight: 600; color: #1e293b; margin: 0;">
+                        {PRODUCTS[selected_product]['name']}
+                    </p>
+                    <p style="margin: 5px 0 0 0; color: #64748b; font-size: 0.9rem;">
+                        B2B Revenue AI Platform with Advanced Analytics
+                    </p>
+                </div>
+            </div>
         </div>
         """, unsafe_allow_html=True)
     
-    # Suggested Questions Section - Always Visible
+    # Add more visual chaos with stats
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.markdown("""
+        <div class="metric-card floating-element" style="text-align: center;">
+            <div style="font-size: 2rem; margin-bottom: 10px;">📊</div>
+            <h4 style="margin: 0; color: white;">Analytics</h4>
+            <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">Real-time insights</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div class="metric-card floating-element" style="text-align: center; animation-delay: 0.5s;">
+            <div style="font-size: 2rem; margin-bottom: 10px;">🎯</div>
+            <h4 style="margin: 0; color: white;">Targeting</h4>
+            <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">AI-powered precision</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown("""
+        <div class="metric-card floating-element" style="text-align: center; animation-delay: 1s;">
+            <div style="font-size: 2rem; margin-bottom: 10px;">🚀</div>
+            <h4 style="margin: 0; color: white;">Growth</h4>
+            <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">Revenue acceleration</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col4:
+        st.markdown("""
+        <div class="metric-card floating-element" style="text-align: center; animation-delay: 1.5s;">
+            <div style="font-size: 2rem; margin-bottom: 10px;">💡</div>
+            <h4 style="margin: 0; color: white;">Insights</h4>
+            <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">Actionable intelligence</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
     st.markdown("---")
+    
+    # Enhanced suggested questions section
+    st.markdown("""
+    <div style="text-align: center; margin: 30px 0;">
+        <div style="display: inline-block; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; padding: 15px 30px; border-radius: 50px; font-weight: 700; box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);">
+            🧠 AI-Powered Question Suggestions
+        </div>
+        <p style="margin-top: 15px; color: #64748b; font-size: 1.1rem;">
+            Click any question below to get instant AI responses with detailed metrics analysis
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
     display_suggested_questions()
+    
     st.markdown("---")
     
     # Initialize chat history
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
     
-    # Display chat history with custom styling
+    # Enhanced chat history display
     if st.session_state.chat_history:
-        st.markdown("### 💬 Conversation History")
+        st.markdown("""
+        <div style="text-align: center; margin: 20px 0;">
+            <div style="display: inline-flex; align-items: center; gap: 10px; background: linear-gradient(135deg, #f1f5f9, #e0f2fe); padding: 10px 20px; border-radius: 25px;">
+                <span style="font-size: 1.5rem;">💬</span>
+                <h3 style="margin: 0; color: #1e293b;">Conversation History</h3>
+                <span style="font-size: 1.5rem;">🤖</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         
         for i, msg in enumerate(st.session_state.chat_history):
             if msg["role"] == "user":
                 st.markdown(f"""
                 <div class="chat-message user-message floating-element" style="animation-delay: {i * 0.1}s;">
-                    <strong>👤 You:</strong> {msg['content']}
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                        <span style="font-size: 1.2rem;">👤</span>
+                        <strong>You:</strong>
+                    </div>
+                    <div style="margin-left: 30px;">{msg['content']}</div>
                 </div>
                 """, unsafe_allow_html=True)
             else:
                 st.markdown(f"""
                 <div class="chat-message assistant-message floating-element" style="animation-delay: {i * 0.1}s;">
-                    <strong>🤖 Assistant:</strong> {msg['content']}
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                        <span style="font-size: 1.2rem;">🤖</span>
+                        <strong>Assistant:</strong>
+                    </div>
+                    <div style="margin-left: 30px;">{msg['content']}</div>
                 </div>
                 """, unsafe_allow_html=True)
             
             if i < len(st.session_state.chat_history) - 1:
                 st.markdown("<hr>", unsafe_allow_html=True)
     
-    # Input area with enhanced styling
-    st.markdown("### 🚀 Ask Your Question")
+    # Enhanced input area
+    st.markdown("""
+    <div style="text-align: center; margin: 30px 0;">
+        <div style="display: inline-block; background: linear-gradient(135deg, #dbeafe, #bfdbfe); padding: 15px 30px; border-radius: 50px; font-weight: 700; box-shadow: 0 10px 30px rgba(59, 130, 246, 0.2);">
+            🚀 Ask Your Question
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
     
     col1, col2 = st.columns([5, 1])
     with col1:
@@ -676,7 +687,7 @@ def page_chat():
             label_visibility="collapsed"
         )
     with col2:
-        send_button = st.button("📤 Send", type="primary", use_container_width=True)
+        send_button = st.button("📤 Send", type="primary", use_container_width=True, label="Send Message")
     
     if send_button and user_input:
         # Add to history
@@ -696,28 +707,37 @@ def page_chat():
             # Display answer with success animation
             st.markdown("""
             <div class="metric-card floating-element" style="text-align: center;">
-                <h3 style="margin: 0;">✅ Response Received!</h3>
+                <div style="font-size: 2rem; margin-bottom: 10px;">✅</div>
+                <h3 style="margin: 0; color: white;">Response Received!</h3>
+                <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">AI has processed your question</p>
             </div>
             """, unsafe_allow_html=True)
             
             # Show follow-ups
             follow_ups = result.get("follow_up_suggestions", [])
             if follow_ups:
-                st.markdown("### 💡 Suggested Follow-ups")
+                st.markdown("""
+                <div style="text-align: center; margin: 20px 0;">
+                    <div style="display: inline-block; background: linear-gradient(135deg, #f0f9ff, #e0f2fe); padding: 10px 20px; border-radius: 25px; font-weight: 600;">
+                        💡 Suggested Follow-ups
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
                 cols = st.columns(min(3, len(follow_ups)))
                 for i, followup in enumerate(follow_ups):
                     with cols[i % 3]:
-                        if st.button(followup, key=f"followup_{i}", use_container_width=True):
+                        if st.button(followup, key=f"followup_{i}", use_container_width=True, label=f"Follow-up: {followup[:30]}..."):
                             st.session_state.chat_history.append({"role": "user", "content": followup})
                             st.rerun()
         
         st.rerun()
     
-    # Clear history button with custom styling
+    # Enhanced clear history button
     if st.session_state.chat_history:
+        st.markdown("---")
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            if st.button("🔄 Clear History", use_container_width=True):
+            if st.button("🔄 Clear History", use_container_width=True, label="Clear Chat History"):
                 st.session_state.chat_history = []
                 st.rerun()
 
