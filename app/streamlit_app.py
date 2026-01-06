@@ -1658,7 +1658,7 @@ def page_status():
 # ==================== SIDEBAR ====================
 
 def sidebar():
-    """Enhanced sidebar navigation with fabulous styling and comprehensive info."""
+    """Enhanced sidebar navigation with clean, simple styling."""
     # Custom sidebar header
     st.sidebar.markdown("""
     <div style="text-align: center; padding: 20px 0;">
@@ -1676,65 +1676,19 @@ def sidebar():
     
     st.sidebar.markdown("---")
     
-    # API Status with enhanced styling
+    # API Status
     api_health = check_api_health()
     if api_health:
-        st.sidebar.markdown("""
-        <div class="insight-box floating-element" style="text-align: center;">
-            <h4 style="color: #10b981; margin-bottom: 0.5rem;">✅ API Connected</h4>
-            <p style="margin: 0; font-size: 0.9rem;">All systems operational</p>
-        </div>
-        """, unsafe_allow_html=True)
+        st.sidebar.success("✅ API Connected")
+        st.sidebar.info("All systems operational")
     else:
-        st.sidebar.markdown("""
-        <div class="stError floating-element" style="text-align: center;">
-            <h4 style="margin-bottom: 0.5rem;">❌ API Offline</h4>
-            <p style="margin: 0; font-size: 0.9rem;">Backend not responding</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.sidebar.markdown("""
-        <div class="insight-box">
-            <h5>🔧 Start Backend:</h5>
-            <code>python app.py</code>
-        </div>
-        """, unsafe_allow_html=True)
+        st.sidebar.error("❌ API Offline")
+        st.sidebar.info("Backend not responding")
+        st.sidebar.info("Start backend with: `python api_backend.py`")
     
     st.sidebar.markdown("---")
     
-    # Enhanced Instructions Section
-    st.sidebar.markdown("### ℹ️ About Platform")
-    st.sidebar.markdown("""
-    <div class="insight-box floating-element">
-        <h4 style="color: #3b82f6; margin-bottom: 0.5rem;">🎯 Key Features</h4>
-        <ul style="margin: 0; padding-left: 1.5rem;">
-            <li>🤖 Smart question suggestions</li>
-            <li>📊 Real-time analytics</li>
-            <li>📋 Strategic reports</li>
-            <li>🔄 RAG pipeline integration</li>
-            <li>🎨 Fabulous UI design</li>
-        </ul>
-        
-        <h5 style="color: #3b82f6; margin-bottom: 0.5rem;">🚀 Technology Stack</h5>
-        <ul style="margin: 0; padding-left: 1.5rem;">
-            <li><strong>Frontend:</strong> Streamlit</li>
-            <li><strong>Backend:</strong> FastAPI</li>
-            <li><strong>AI:</strong> OpenAI GPT-4</li>
-            <li><strong>Vector DB:</strong> ChromaDB</li>
-            <li><strong>Framework:</strong> LangChain</li>
-        </ul>
-        
-        <h5 style="color: #3b82f6; margin-bottom: 0.5rem;">📈 Current Product</h5>
-        <p style="margin: 0; padding: 0.5rem; background: #f1f5f9; border-radius: 8px; text-align: center;">
-            <strong>6sense Revenue AI™</strong><br>
-            <span style="font-size: 0.8rem; color: #64748b;">B2B Revenue Intelligence Platform</span>
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.sidebar.markdown("---")
-    
-    # Enhanced Navigation
+    # Navigation
     st.sidebar.markdown("### 🧭 Navigation")
     page = st.sidebar.radio(
         "",
@@ -1744,16 +1698,54 @@ def sidebar():
     
     st.sidebar.markdown("---")
     
-    # Product Info
+    # Quick Instructions
+    st.sidebar.markdown("### 📖 Quick Instructions")
+    
+    with st.sidebar.expander("💬 Chat", expanded=True):
+        st.write("• Click suggested questions")
+        st.write("• Type your own questions")
+        st.write("• Get AI-powered answers")
+    
+    with st.sidebar.expander("📊 Analytics", expanded=True):
+        st.write("• Enter company details")
+        st.write("• Set budget & timeline")
+        st.write("• Get scenario analysis")
+    
+    with st.sidebar.expander("📋 Reports", expanded=True):
+        st.write("• Choose report type")
+        st.write("• Configure parameters")
+        st.write("• Generate strategic insights")
+    
+    st.sidebar.markdown("---")
+    
+    # About Platform
+    st.sidebar.markdown("### ℹ️ About Platform")
+    
+    with st.sidebar.expander("🎯 Key Features", expanded=True):
+        st.write("🤖 Smart question suggestions")
+        st.write("📊 Real-time analytics")
+        st.write("📋 Strategic reports")
+        st.write("🔄 RAG pipeline integration")
+        st.write("🎨 Fabulous UI design")
+    
+    with st.sidebar.expander("🚀 Technology Stack", expanded=True):
+        st.write("**Frontend:** Streamlit")
+        st.write("**Backend:** FastAPI")
+        st.write("**AI:** OpenAI GPT-4")
+        st.write("**Vector DB:** ChromaDB")
+        st.write("**Framework:** LangChain")
+    
+    with st.sidebar.expander("📈 Current Product", expanded=True):
+        st.write(f"**{PRODUCTS[DEFAULT_PRODUCT]['name']}**")
+        st.write("B2B Revenue Intelligence Platform")
+    
+    # Product Details
     st.sidebar.markdown("### 🎯 Product Details")
-    st.sidebar.markdown(f"""
-    <div class="source-badge floating-element" style="text-align: center; width: 100%;">
-        <strong>{PRODUCTS[DEFAULT_PRODUCT]['name']}</strong>
-        <div style="font-size: 0.8rem; margin-top: 0.5rem; opacity: 0.9;">
-            B2B Revenue AI Platform
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.sidebar.info(f"""
+    **{PRODUCTS[DEFAULT_PRODUCT]['name']}**
+    
+    B2B Revenue AI Platform
+    """)
     
     # Quick Stats
     st.sidebar.markdown("### 📊 Quick Stats")
@@ -1768,13 +1760,14 @@ def sidebar():
     st.sidebar.markdown("""
     <div style="text-align: center; padding: 1rem 0; font-size: 0.8rem; color: #64748b;">
         <p><strong>Version:</strong> 1.0.0</p>
-        <p><strong>🔗</strong> 
+        <p><strong> 2026</strong> Cuspera RAG Platform</p>
+        <p style="margin-top: 0.5rem;">
+            <strong></strong> 
             <a href="https://github.com/abhishek-a-qbit/cuspera-rag-platform" 
                style="color: #3b82f6; text-decoration: none;">
                 GitHub Repository
             </a>
         </p>
-    </div>
     """, unsafe_allow_html=True)
     
     return page
