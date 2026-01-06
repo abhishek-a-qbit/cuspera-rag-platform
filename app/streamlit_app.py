@@ -19,13 +19,37 @@ from plotly.subplots import make_subplots
 # Add src to path so we can import from src modules
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
+# Import question generator
+try:
+    from question_generator import generate_suggested_questions
+    QUESTION_GENERATOR_AVAILABLE = True
+except ImportError:
+    QUESTION_GENERATOR_AVAILABLE = False
+    print("Warning: Question generator not available. Using fallback questions.")
+
 # ==================== CONFIG ====================
 
 # API URL - supports both local and production environments
 API_URL = os.getenv("API_URL", "http://localhost:8000")
+
+# Product Configuration - Currently only 6sense, ready for future expansion
+PRODUCTS = {
+    "6sense": {
+        "name": "6sense Revenue AI",
+        "id": "6sense",
+        "description": "B2B Revenue AI Platform",
+        "enabled": True
+    }
+    # Future products will be added here
+    # "product2": { "name": "Product 2", "id": "product2", "enabled": False }
+}
+
+# Default product for now
+DEFAULT_PRODUCT = "6sense"
+
 st.set_page_config(
-    page_title="Cuspera RAG POC",
-    page_icon="🧠",
+    page_title="Cuspera RAG Platform",
+    page_icon="🚀",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -34,28 +58,311 @@ st.set_page_config(
 
 st.markdown("""
 <style>
+    /* Main Theme - White & Blue with Chaos-Order Balance */
+    .stApp {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #e2e8f0 100%);
+        color: #1e293b;
+    }
+    
+    /* Chaos Elements - Dynamic Gradients */
     .metric-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 20px;
-        border-radius: 10px;
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%);
+        padding: 25px;
+        border-radius: 20px;
         color: white;
-        margin: 10px 0;
+        margin: 15px 0;
+        box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
     }
+    
+    .metric-card::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+        transform: rotate(45deg);
+        transition: all 0.5s ease;
+    }
+    
+    .metric-card:hover::before {
+        animation: shimmer 1s ease-in-out;
+    }
+    
+    @keyframes shimmer {
+        0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+        100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+    }
+    
+    /* Order Elements - Clean Structure */
     .insight-box {
-        background: #f0f2f6;
-        padding: 15px;
-        border-left: 4px solid #667eea;
-        border-radius: 5px;
-        margin: 10px 0;
+        background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+        padding: 20px;
+        border-left: 5px solid #3b82f6;
+        border-radius: 15px;
+        margin: 15px 0;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
     }
+    
+    .insight-box:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2);
+    }
+    
+    /* Source Badges - Organized Chaos */
     .source-badge {
         display: inline-block;
-        background: #667eea;
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
         color: white;
-        padding: 5px 10px;
-        border-radius: 20px;
+        padding: 8px 16px;
+        border-radius: 25px;
         font-size: 12px;
+        font-weight: 600;
         margin: 5px 5px 5px 0;
+        box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .source-badge::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        transition: left 0.5s ease;
+    }
+    
+    .source-badge:hover::after {
+        left: 100%;
+    }
+    
+    /* Headers - Bold & Dynamic */
+    .stHeader {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        padding: 2rem;
+        border-radius: 0 0 30px 30px;
+        color: white;
+        box-shadow: 0 10px 30px rgba(59, 130, 246, 0.4);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stHeader::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="75" cy="75" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="10" r="0.5" fill="rgba(255,255,255,0.05)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+        opacity: 0.3;
+    }
+    
+    /* Sidebar - Clean Order */
+    .css-1d391kg {
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        border-right: 1px solid #e2e8f0;
+    }
+    
+    /* Buttons - Dynamic Chaos */
+    .stButton > button {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 12px 24px;
+        font-weight: 600;
+        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stButton > button::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        transition: width 0.6s ease, height 0.6s ease;
+    }
+    
+    .stButton > button:hover::before {
+        width: 300px;
+        height: 300px;
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(59, 130, 246, 0.5);
+    }
+    
+    /* Input Fields - Clean Order */
+    .stTextInput > div > div > input,
+    .stSelectbox > div > div > select,
+    .stSlider > div > div > input {
+        background: white;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 12px;
+        transition: all 0.3s ease;
+    }
+    
+    .stTextInput > div > div > input:focus,
+    .stSelectbox > div > div > select:focus,
+    .stSlider > div > div > input:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    /* Expander - Structured Chaos */
+    .streamlit-expanderHeader {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border-radius: 12px;
+        border: 1px solid #cbd5e1;
+        font-weight: 600;
+        color: #1e293b;
+    }
+    
+    /* Chat Messages - Balanced Design */
+    .chat-message {
+        padding: 15px 20px;
+        border-radius: 18px;
+        margin: 10px 0;
+        max-width: 80%;
+        position: relative;
+    }
+    
+    .user-message {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+        margin-left: auto;
+        box-shadow: 0 5px 15px rgba(59, 130, 246, 0.3);
+    }
+    
+    .assistant-message {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        color: #1e293b;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Success/Error Messages - Clean */
+    .stSuccess {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border-radius: 12px;
+        padding: 15px;
+        color: white;
+    }
+    
+    .stError {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        border-radius: 12px;
+        padding: 15px;
+        color: white;
+    }
+    
+    /* Info Box - Balanced */
+    .stInfo {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        border-radius: 12px;
+        padding: 15px;
+        color: white;
+        box-shadow: 0 5px 15px rgba(59, 130, 246, 0.3);
+    }
+    
+    /* Charts Container - Clean Order */
+    .stPlotlyChart {
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid #e2e8f0;
+    }
+    
+    /* Progress Bar - Dynamic */
+    .stProgress > div > div > div > div {
+        background: linear-gradient(90deg, #3b82f6, #2563eb, #1d4ed8);
+        border-radius: 10px;
+    }
+    
+    /* Spinner - Chaotic Animation */
+    .stSpinner > div {
+        border-top-color: #3b82f6;
+        border-right-color: #2563eb;
+        border-bottom-color: #1d4ed8;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    /* Tabs - Organized Structure */
+    .stTabs [data-baseweb="tab-list"] {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border-radius: 12px;
+        padding: 5px;
+        gap: 5px;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        background: white;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-weight: 600;
+        color: #64748b;
+        transition: all 0.3s ease;
+    }
+    
+    .stTabs [data-baseweb="tab"][aria-selected="true"] {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+    }
+    
+    /* Divider - Clean Break */
+    hr {
+        border: none;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #3b82f6, transparent);
+        margin: 20px 0;
+    }
+    
+    /* Custom Animation for Chaos Elements */
+    .floating-element {
+        animation: float 6s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .metric-card {
+            padding: 15px;
+            margin: 10px 0;
+        }
+        
+        .stHeader {
+            padding: 1rem;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -70,9 +377,23 @@ def check_api_health():
     except:
         return False
 
-def call_api(endpoint: str, method: str = "POST", data: Dict = None) -> Dict[str, Any]:
-    """Call API endpoint."""
+def call_api(endpoint: str, method: str = "POST", data: Dict = None, product: str = None) -> Dict[str, Any]:
+    """Call API endpoint with product routing."""
     try:
+        # Use default product if none specified
+        if product is None:
+            product = DEFAULT_PRODUCT
+        
+        # Validate product
+        if product not in PRODUCTS:
+            return {"error": f"Product '{product}' not supported"}
+        
+        # Add product to data for routing
+        if data is None:
+            data = {}
+        
+        data["product"] = product
+        
         if method == "POST":
             resp = requests.post(f"{API_URL}{endpoint}", json=data, timeout=30)
         else:
@@ -86,6 +407,162 @@ def call_api(endpoint: str, method: str = "POST", data: Dict = None) -> Dict[str
         return {"error": "Request timeout (API taking too long)"}
     except Exception as e:
         return {"error": f"API error: {str(e)}"}
+
+def call_product_api(endpoint: str, method: str = "POST", data: Dict = None) -> Dict[str, Any]:
+    """Convenience function that uses the default product."""
+    return call_api(endpoint, method, data, DEFAULT_PRODUCT)
+
+def display_suggested_questions():
+    """Display suggested questions with metrics visualization."""
+    if not QUESTION_GENERATOR_AVAILABLE:
+        # Fallback questions
+        fallback_questions = [
+            "What are the key capabilities of 6sense Revenue AI?",
+            "How does 6sense help with account identification and targeting?",
+            "What integration options are available with 6sense?",
+            "How can 6sense improve sales team efficiency?",
+            "What kind of analytics and insights does 6sense provide?"
+        ]
+        
+        st.markdown("### 💡 Suggested Questions")
+        for i, question in enumerate(fallback_questions, 1):
+            col1, col2 = st.columns([1, 10])
+            with col1:
+                st.write(f"{i}.")
+            with col2:
+                if st.button(question, key=f"fallback_q_{i}", use_container_width=True):
+                    st.session_state.chat_history.append({"role": "user", "content": question})
+                    st.rerun()
+        return
+    
+    # Generate questions with metrics
+    with st.spinner("🤔 Generating intelligent suggestions..."):
+        suggested_questions = generate_suggested_questions(5)
+    
+    if not suggested_questions:
+        st.info("No suggestions available at the moment.")
+        return
+    
+    st.markdown("### 🎯 AI-Powered Suggested Questions")
+    
+    for i, q_data in enumerate(suggested_questions, 1):
+        metrics = q_data['metrics']
+        passes = q_data['passes_threshold']
+        
+        # Create metric visualization
+        col1, col2, col3 = st.columns([1, 8, 2])
+        
+        with col1:
+            st.write(f"**{i}.**")
+        
+        with col2:
+            # Question button with styling based on quality
+            button_type = "primary" if passes else "secondary"
+            if st.button(
+                q_data['question'], 
+                key=f"q_{i}",
+                use_container_width=True,
+                type=button_type if button_type == "primary" else None
+            ):
+                st.session_state.chat_history.append({"role": "user", "content": q_data['question']})
+                st.rerun()
+        
+        with col3:
+            # Quality indicator
+            if passes:
+                st.markdown("""
+                <div class="source-badge floating-element" style="text-align: center; font-size: 0.8rem;">
+                    ✅ High Quality
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown("""
+                <div style="text-align: center; color: #64748b; font-size: 0.8rem;">
+                    📊 Moderate
+                </div>
+                """, unsafe_allow_html=True)
+        
+        # Detailed metrics in expander
+        with st.expander(f"📊 Metrics for Question {i}", expanded=False):
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                # Coverage metric
+                coverage_color = "#10b981" if metrics['coverage'] > 0 else "#ef4444"
+                st.markdown(f"""
+                <div style="text-align: center; padding: 10px; border-radius: 8px; background: {coverage_color}20;">
+                    <h4 style="margin: 0; color: {coverage_color};">Coverage</h4>
+                    <p style="margin: 0; font-size: 1.2rem; font-weight: bold;">{metrics['coverage']:.2f}</p>
+                    <p style="margin: 0; font-size: 0.8rem; color: #64748b;">
+                        {'✅ Good' if metrics['coverage'] > 0 else '❌ Poor'}
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col2:
+                # Specificity metric
+                specific_color = "#10b981" if metrics['specific'] > 0 else "#ef4444"
+                st.markdown(f"""
+                <div style="text-align: center; padding: 10px; border-radius: 8px; background: {specific_color}20;">
+                    <h4 style="margin: 0; color: {specific_color};">Specificity</h4>
+                    <p style="margin: 0; font-size: 1.2rem; font-weight: bold;">{metrics['specific']:.2f}</p>
+                    <p style="margin: 0; font-size: 0.8rem; color: #64748b;">
+                        {'✅ Specific' if metrics['specific'] > 0 else '❌ Vague'}
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col3:
+                # Insight metric
+                insight_color = "#10b981" if metrics['insight'] > 0 else "#ef4444"
+                st.markdown(f"""
+                <div style="text-align: center; padding: 10px; border-radius: 8px; background: {insight_color}20;">
+                    <h4 style="margin: 0; color: {insight_color};">Insightful</h4>
+                    <p style="margin: 0; font-size: 1.2rem; font-weight: bold;">{metrics['insight']:.2f}</p>
+                    <p style="margin: 0; font-size: 0.8rem; color: #64748b;">
+                        {'✅ Actionable' if metrics['insight'] > 0 else '❌ Basic'}
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col4:
+                # Grounded metric
+                grounded_color = "#10b981" if metrics['grounded'] > 0 else "#ef4444"
+                st.markdown(f"""
+                <div style="text-align: center; padding: 10px; border-radius: 8px; background: {grounded_color}20;">
+                    <h4 style="margin: 0; color: {grounded_color};">Grounded</h4>
+                    <p style="margin: 0; font-size: 1.2rem; font-weight: bold;">{metrics['grounded']:.2f}</p>
+                    <p style="margin: 0; font-size: 0.8rem; color: #64748b;">
+                        {'✅ Supported' if metrics['grounded'] > 0 else '❌ Unsupported'}
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # Overall score and reasoning
+            st.markdown("---")
+            col1, col2 = st.columns([1, 2])
+            
+            with col1:
+                overall_color = "#10b981" if metrics['overall'] > 0 else "#ef4444"
+                st.markdown(f"""
+                <div class="metric-card floating-element" style="text-align: center;">
+                    <h4 style="margin: 0;">Overall Score</h4>
+                    <p style="margin: 0; font-size: 2rem; font-weight: bold;">{metrics['overall']:.2f}</p>
+                    <p style="margin: 0; font-size: 0.9rem;">
+                        {'✅ RECOMMENDED' if metrics['overall'] > 0 else '❌ NOT RECOMMENDED'}
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col2:
+                st.markdown("""
+                <div class="insight-box floating-element">
+                    <h4 style="color: #3b82f6; margin-bottom: 0.5rem;">🧠 AI Reasoning</h4>
+                    <p style="margin: 0; font-size: 0.9rem; line-height: 1.4;">
+                """ + q_data['reasoning'] + """
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
 
 def display_sources(sources: List[Dict]) -> None:
     """Display source documents."""
@@ -123,80 +600,164 @@ def display_metrics(kpis: List[Dict]) -> None:
 # ==================== PAGE: CHAT ====================
 
 def page_chat():
-    """Chat interface."""
-    st.header("💬 Chat Consultant")
-    st.markdown("Ask questions about products. Get AI-powered answers grounded in real data.")
+    """Chat interface with product routing and suggested questions."""
+    # Custom header with gradient and animation
+    st.markdown("""
+    <div class="floating-element">
+        <h1 style="text-align: center; font-size: 2.5rem; font-weight: 700; 
+                   background: linear-gradient(135deg, #3b82f6, #1d4ed8); 
+                   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                   margin-bottom: 0.5rem;">
+            💬 Chat Consultant
+        </h1>
+        <p style="text-align: center; color: #64748b; font-size: 1.1rem;">
+            Ask questions about **6sense Revenue AI**. Get AI-powered answers grounded in real data.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Product selector (ready for future expansion)
+    if len(PRODUCTS) > 1:
+        selected_product = st.selectbox(
+            "🎯 Select Product:",
+            options=list(PRODUCTS.keys()),
+            format_func=lambda x: PRODUCTS[x]["name"],
+            index=list(PRODUCTS.keys()).index(DEFAULT_PRODUCT)
+        )
+    else:
+        selected_product = DEFAULT_PRODUCT
+        st.markdown(f"""
+        <div class="insight-box floating-element">
+            <h4 style="color: #3b82f6; margin-bottom: 0.5rem;">🎯 Currently Analyzing</h4>
+            <p style="font-size: 1.2rem; font-weight: 600; color: #1e293b; margin: 0;">
+                {PRODUCTS[selected_product]['name']}
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Suggested Questions Section - Always Visible
+    st.markdown("---")
+    display_suggested_questions()
+    st.markdown("---")
     
     # Initialize chat history
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
     
-    # Display chat history
+    # Display chat history with custom styling
     if st.session_state.chat_history:
-        st.markdown("### Conversation History")
-        for msg in st.session_state.chat_history:
+        st.markdown("### 💬 Conversation History")
+        
+        for i, msg in enumerate(st.session_state.chat_history):
             if msg["role"] == "user":
-                st.write(f"👤 **You**: {msg['content']}")
+                st.markdown(f"""
+                <div class="chat-message user-message floating-element" style="animation-delay: {i * 0.1}s;">
+                    <strong>👤 You:</strong> {msg['content']}
+                </div>
+                """, unsafe_allow_html=True)
             else:
-                st.write(f"🤖 **Assistant**: {msg['content']}")
-            st.divider()
+                st.markdown(f"""
+                <div class="chat-message assistant-message floating-element" style="animation-delay: {i * 0.1}s;">
+                    <strong>🤖 Assistant:</strong> {msg['content']}
+                </div>
+                """, unsafe_allow_html=True)
+            
+            if i < len(st.session_state.chat_history) - 1:
+                st.markdown("<hr>", unsafe_allow_html=True)
     
-    # Input area
-    st.markdown("---")
-    st.markdown("### Ask a Question")
+    # Input area with enhanced styling
+    st.markdown("### 🚀 Ask Your Question")
     
     col1, col2 = st.columns([5, 1])
     with col1:
         user_input = st.text_input(
             "Your question:",
-            placeholder="e.g., 'What are the key capabilities?' or 'How does pricing work?'",
+            placeholder=f"e.g., 'What are key capabilities of {PRODUCTS[selected_product]['name']}?' or 'How does pricing work?'",
             label_visibility="collapsed"
         )
     with col2:
-        send_button = st.button("Send", type="primary")
+        send_button = st.button("📤 Send", type="primary", use_container_width=True)
     
     if send_button and user_input:
         # Add to history
         st.session_state.chat_history.append({"role": "user", "content": user_input})
         
-        # Call API
+        # Call API with product routing
         with st.spinner("🤔 Thinking..."):
-            result = call_api("/chat", data={"question": user_input})
+            result = call_api("/chat", data={"question": user_input}, product=selected_product)
         
         if "error" in result:
-            st.error(f"Error: {result['error']}")
+            st.error(f"❌ Error: {result['error']}")
         else:
             # Add response to history
             answer = result.get("answer", "No response")
             st.session_state.chat_history.append({"role": "assistant", "content": answer})
             
-            # Display answer
-            st.success("✓ Response received!")
-            st.markdown(answer)
+            # Display answer with success animation
+            st.markdown("""
+            <div class="metric-card floating-element" style="text-align: center;">
+                <h3 style="margin: 0;">✅ Response Received!</h3>
+            </div>
+            """, unsafe_allow_html=True)
             
             # Show follow-ups
             follow_ups = result.get("follow_up_suggestions", [])
             if follow_ups:
                 st.markdown("### 💡 Suggested Follow-ups")
-                for followup in follow_ups:
-                    if st.button(followup):
-                        st.session_state.chat_history.append({"role": "user", "content": followup})
-                        st.rerun()
+                cols = st.columns(min(3, len(follow_ups)))
+                for i, followup in enumerate(follow_ups):
+                    with cols[i % 3]:
+                        if st.button(followup, key=f"followup_{i}", use_container_width=True):
+                            st.session_state.chat_history.append({"role": "user", "content": followup})
+                            st.rerun()
         
         st.rerun()
     
-    # Clear history button
+    # Clear history button with custom styling
     if st.session_state.chat_history:
-        if st.button("🔄 Clear History"):
-            st.session_state.chat_history = []
-            st.rerun()
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if st.button("🔄 Clear History", use_container_width=True):
+                st.session_state.chat_history = []
+                st.rerun()
 
 # ==================== PAGE: ANALYTICS ====================
 
 def page_analytics():
     """Enhanced analytics with charts and detailed inputs."""
-    st.header("📊 Advanced Analytics Engine")
-    st.markdown("Comprehensive scenario analysis with interactive visualizations.")
+    # Custom header with gradient and animation
+    st.markdown("""
+    <div class="floating-element">
+        <h1 style="text-align: center; font-size: 2.5rem; font-weight: 700; 
+                   background: linear-gradient(135deg, #3b82f6, #1d4ed8); 
+                   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                   margin-bottom: 0.5rem;">
+            📊 Advanced Analytics Engine
+        </h1>
+        <p style="text-align: center; color: #64748b; font-size: 1.1rem;">
+            Comprehensive scenario analysis for **6sense Revenue AI** with interactive visualizations.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Product selector (ready for future expansion)
+    if len(PRODUCTS) > 1:
+        selected_product = st.selectbox(
+            "🎯 Select Product:",
+            options=list(PRODUCTS.keys()),
+            format_func=lambda x: PRODUCTS[x]["name"],
+            index=list(PRODUCTS.keys()).index(DEFAULT_PRODUCT)
+        )
+    else:
+        selected_product = DEFAULT_PRODUCT
+        st.markdown(f"""
+        <div class="insight-box floating-element">
+            <h4 style="color: #3b82f6; margin-bottom: 0.5rem;">🎯 Currently Analyzing</h4>
+            <p style="font-size: 1.2rem; font-weight: 600; color: #1e293b; margin: 0;">
+                {PRODUCTS[selected_product]['name']}
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
     
     # Enhanced scenario input
     st.markdown("### 🎯 Define Your Business Scenario")
@@ -271,14 +832,28 @@ def page_analytics():
     
     scenario_summary = f"{team_size}-person {company_stage} {industry} company with ₹{budget:,} budget targeting {target_market} market for {timeline}"
     
-    if st.button("🚀 Generate Comprehensive Analysis", type="primary"):
-        with st.spinner("Analyzing scenario and generating insights..."):
-            result = call_api("/analytics", data={"scenario": scenario_summary, "detailed_data": scenario_data})
-        
-        if "error" in result:
-            st.error(f"Error: {result['error']}")
-        else:
-            st.success("✓ Analysis complete!")
+    # Generate Analysis Button with Enhanced Styling
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("🚀 Generate Comprehensive Analysis", type="primary", use_container_width=True):
+            with st.spinner("🔍 Analyzing scenario and generating insights..."):
+                result = call_api("/analytics", data={"scenario": scenario_summary, "detailed_data": scenario_data}, product=selected_product)
+            
+            if "error" in result:
+                st.markdown(f"""
+                <div class="stError floating-element">
+                    <h4>❌ Analysis Failed</h4>
+                    <p>{result['error']}</p>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                # Success animation
+                st.markdown("""
+                <div class="metric-card floating-element" style="text-align: center;">
+                    <h3 style="margin: 0;">✅ Analysis Complete!</h3>
+                    <p>Your comprehensive scenario analysis is ready.</p>
+                </div>
+                """, unsafe_allow_html=True)
             
             # Display enhanced analytics
             analytics = result.get("analytics", {})
@@ -566,8 +1141,39 @@ def page_analytics():
 
 def page_reports():
     """Enhanced strategic report generation with infographics."""
-    st.header("📋 Strategic Intelligence Reports")
-    st.markdown("Generate comprehensive AI-powered strategic analysis with interactive visualizations.")
+    # Custom header with gradient and animation
+    st.markdown("""
+    <div class="floating-element">
+        <h1 style="text-align: center; font-size: 2.5rem; font-weight: 700; 
+                   background: linear-gradient(135deg, #3b82f6, #1d4ed8); 
+                   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                   margin-bottom: 0.5rem;">
+            📋 Strategic Intelligence Reports
+        </h1>
+        <p style="text-align: center; color: #64748b; font-size: 1.1rem;">
+            Generate comprehensive AI-powered strategic analysis for **6sense Revenue AI** with interactive visualizations.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Product selector (ready for future expansion)
+    if len(PRODUCTS) > 1:
+        selected_product = st.selectbox(
+            "🎯 Select Product:",
+            options=list(PRODUCTS.keys()),
+            format_func=lambda x: PRODUCTS[x]["name"],
+            index=list(PRODUCTS.keys()).index(DEFAULT_PRODUCT)
+        )
+    else:
+        selected_product = DEFAULT_PRODUCT
+        st.markdown(f"""
+        <div class="insight-box floating-element">
+            <h4 style="color: #3b82f6; margin-bottom: 0.5rem;">🎯 Currently Analyzing</h4>
+            <p style="font-size: 1.2rem; font-weight: 600; color: #1e293b; margin: 0;">
+                {PRODUCTS[selected_product]['name']}
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
     
     # Enhanced report parameters
     st.markdown("### 🎯 Report Configuration")
@@ -610,31 +1216,51 @@ def page_reports():
                 ["Revenue Growth", "Market Expansion", "Competitive Positioning", "Technology Integration", "Customer Acquisition"])
             risk_tolerance = st.selectbox("Risk Tolerance", ["Low", "Medium", "High"])
     
-    # Generate report
-    if st.button("🚀 Generate Strategic Report", type="primary"):
-        if not topic:
-            st.error("Please enter a report topic")
-        else:
-            with st.spinner("🤖 Generating comprehensive strategic report..."):
-                constraints = {
-                    "team_size": team_size,
-                    "budget": budget,
-                    "timeline": timeline,
-                    "industry": industry,
-                    "report_type": report_type,
-                    "depth_level": depth_level,
-                    "focus_area": focus_area,
-                    "risk_tolerance": risk_tolerance,
-                    "include_charts": include_charts,
-                    "include_competitors": include_competitors,
-                    "include_roi": include_roi
-                }
-                result = call_api("/report", data={"topic": topic, "constraints": constraints})
-            
-            if "error" in result:
-                st.error(f"Error: {result['error']}")
+    # Generate Report Button with Enhanced Styling
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("🚀 Generate Strategic Report", type="primary", use_container_width=True):
+            if not topic:
+                st.markdown("""
+                <div class="stError floating-element">
+                    <h4>⚠️ Missing Information</h4>
+                    <p>Please enter a report topic to continue.</p>
+                </div>
+                """, unsafe_allow_html=True)
             else:
-                report = result.get("report", {})
+                with st.spinner("🤖 Generating comprehensive strategic report..."):
+                    constraints = {
+                        "team_size": team_size,
+                        "budget": budget,
+                        "timeline": timeline,
+                        "industry": industry,
+                        "report_type": report_type,
+                        "depth_level": depth_level,
+                        "focus_area": focus_area,
+                        "risk_tolerance": risk_tolerance,
+                        "include_charts": include_charts,
+                        "include_competitors": include_competitors,
+                        "include_roi": include_roi
+                    }
+                    result = call_api("/report", data={"topic": topic, "constraints": constraints}, product=selected_product)
+                
+                if "error" in result:
+                    st.markdown(f"""
+                    <div class="stError floating-element">
+                        <h4>❌ Report Generation Failed</h4>
+                        <p>{result['error']}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    report = result.get("report", {})
+                    
+                    # Success animation
+                    st.markdown("""
+                    <div class="metric-card floating-element" style="text-align: center;">
+                        <h3 style="margin: 0;">✅ Strategic Report Generated!</h3>
+                        <p>Your comprehensive strategic analysis is ready.</p>
+                    </div>
+                    """, unsafe_allow_html=True)
                 
                 # Display enhanced report
                 st.success("✓ Strategic report generated successfully!")
@@ -1011,46 +1637,83 @@ def page_status():
 # ==================== SIDEBAR ====================
 
 def sidebar():
-    """Sidebar navigation."""
-    st.sidebar.markdown("# 🧠 Cuspera RAG")
-    st.sidebar.markdown("Product Intelligence Platform")
+    """Enhanced sidebar navigation with fabulous styling."""
+    # Custom sidebar header
+    st.sidebar.markdown("""
+    <div style="text-align: center; padding: 20px 0;">
+        <h1 style="font-size: 2rem; font-weight: 700; 
+                   background: linear-gradient(135deg, #3b82f6, #1d4ed8); 
+                   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                   margin-bottom: 0.5rem;">
+            🚀 Cuspera RAG
+        </h1>
+        <p style="color: #64748b; font-size: 1rem; margin: 0;">
+            Product Intelligence Platform
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
     
     st.sidebar.markdown("---")
     
-    # API Status
+    # API Status with enhanced styling
     api_health = check_api_health()
     if api_health:
-        st.sidebar.success("✓ API Connected")
+        st.sidebar.markdown("""
+        <div class="insight-box floating-element" style="text-align: center;">
+            <h4 style="color: #10b981; margin-bottom: 0.5rem;">✅ API Connected</h4>
+            <p style="margin: 0; font-size: 0.9rem;">All systems operational</p>
+        </div>
+        """, unsafe_allow_html=True)
     else:
-        st.sidebar.error("✗ API Offline")
-        st.sidebar.info(
-            "Start the backend:\n```\npython api_backend.py\n```"
-        )
+        st.sidebar.markdown("""
+        <div class="stError floating-element" style="text-align: center;">
+            <h4 style="margin-bottom: 0.5rem;">❌ API Offline</h4>
+            <p style="margin: 0; font-size: 0.9rem;">Backend not responding</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.sidebar.markdown("""
+        <div class="insight-box">
+            <h5>🔧 Start Backend:</h5>
+            <code>python app.py</code>
+        </div>
+        """, unsafe_allow_html=True)
     
     st.sidebar.markdown("---")
     
-    # Navigation
+    # Enhanced Navigation
+    st.sidebar.markdown("### 🧭 Navigation")
     page = st.sidebar.radio(
-        "Navigate",
+        "",
         ["💬 Chat", "📊 Analytics", "📋 Reports", "⚙️ Status"],
         label_visibility="collapsed"
     )
     
     st.sidebar.markdown("---")
     
-    # Info
-    st.sidebar.markdown("### About")
-    st.sidebar.markdown(
-        """
-        **Cuspera RAG** is a proof-of-concept for AI-powered product intelligence.
-        
-        - **Chat**: Ask questions in natural language
-        - **Analytics**: Analyze scenarios with real data
-        - **Reports**: Generate strategic reports
-        
-        Learn more: [GitHub](#)
-        """
-    )
+    # Enhanced About Section
+    st.sidebar.markdown("### 📖 About")
+    st.sidebar.markdown("""
+    <div class="insight-box floating-element">
+        <h4 style="color: #3b82f6; margin-bottom: 0.5rem;">Cuspera RAG Platform</h4>
+        <p style="margin: 0; font-size: 0.9rem;">
+            AI-powered product intelligence with:
+        </p>
+        <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+            <li>💬 Natural language chat</li>
+            <li>📊 Scenario analytics</li>
+            <li>📋 Strategic reports</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Product Info
+    st.sidebar.markdown("### 🎯 Current Product")
+    st.sidebar.markdown(f"""
+    <div class="source-badge floating-element" style="text-align: center; width: 100%;">
+        <strong>{PRODUCTS[DEFAULT_PRODUCT]['name']}</strong>
+    </div>
+    """, unsafe_allow_html=True)
     
     return page
 

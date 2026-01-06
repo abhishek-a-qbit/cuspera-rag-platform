@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from data_loader import load_all_datasets
 from vector_store import VectorStore
-from rag_graph import create_rag_graph, create_enhanced_rag_graph, create_persistent_rag_graph
+from rag_graph import create_rag_graph, create_enhanced_rag_graph, create_persistent_rag_graph, run_rag_query
 from config import DATABASE_PATH, GOOGLE_API_KEY
 
 # Load environment
@@ -53,6 +53,7 @@ class AnalyticsRequest(BaseModel):
 class ChatMessage(BaseModel):
     question: str
     chat_context: Optional[List[str]] = None
+    product: Optional[str] = "6sense"
 
 class ReportRequest(BaseModel):
     topic: str  # e.g., "Growth strategy for B2B SaaS"
@@ -78,6 +79,9 @@ async def startup_event():
     # Create persistent RAG graph with caching
     print("\n[1/3] Creating persistent RAG system with caching...")
     rag_graph = create_persistent_rag_graph(use_persistent=True, force_reprocess=False)
+    
+    # Extract vector store from RAG graph for analytics endpoint
+    vector_store = rag_graph.vector_store if rag_graph else None
     
     # Extract product metadata
     product_meta = {
@@ -179,6 +183,10 @@ async def chat_endpoint(request: ChatMessage):
         raise HTTPException(status_code=503, detail="RAG system not initialized")
     
     try:
+        # Log product for future routing
+        product = request.product or "6sense"
+        print(f"\n[CHAT] Product: {product}")
+        
         # Build context string from chat history
         context_str = "\n".join(request.chat_context or [])
         
@@ -193,7 +201,8 @@ async def chat_endpoint(request: ChatMessage):
             "success": True,
             "answer": result["answer"],
             "follow_up_suggestions": generate_follow_ups(request.question, result.get("retrieved_docs", [])),
-            "context_used": len(request.chat_context or [])
+            "context_used": len(request.chat_context or []),
+            "product": product
         }
     except Exception as e:
         import traceback
@@ -242,6 +251,10 @@ async def analytics_endpoint(request: AnalyticsRequest):
         raise HTTPException(status_code=503, detail="Vector store not initialized")
     
     try:
+        # Log product for future routing
+        product = request.product or "6sense"
+        print(f"\n[ANALYTICS] Product: {product}")
+        
         # Query for relevant analytics data
         query = f"What are the key metrics, pricing, and features for {request.scenario}?"
         docs = vector_store.retrieve(query, top_k=10)
@@ -254,6 +267,7 @@ async def analytics_endpoint(request: AnalyticsRequest):
             "scenario": request.scenario,
             "analytics": analytics_data,
             "sources": len(docs),
+            "product": product,
             "charts": {
                 "recommended": ["pricing_comparison", "feature_coverage", "roi_projection"]
             }
@@ -269,6 +283,10 @@ async def report_endpoint(request: ReportRequest):
         raise HTTPException(status_code=503, detail="RAG system not initialized")
     
     try:
+        # Log product for future routing
+        product = request.product or "6sense"
+        print(f"\n[REPORT] Product: {product}")
+        
         # Build comprehensive query
         constraints_str = ""
         if request.constraints:
@@ -329,6 +347,7 @@ async def report_endpoint(request: ReportRequest):
             "success": True,
             "report": report_data,
             "sources_used": sources_count,
+            "product": product,
             "metadata": metadata
         }
     except Exception as e:
