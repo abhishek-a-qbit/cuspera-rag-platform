@@ -36,12 +36,12 @@ def show_question_table():
             "How long does 6sense implementation take?"
         ]
     
-    # Generate 20 random questions
-    if len(base_questions) < 20:
-        questions = [q + f" ({i})" for i in range(20) for q in base_questions]
-        questions = random.sample(questions, 20)
+    # Generate 100 random questions
+    if len(base_questions) < 100:
+        questions = [q + f" ({i})" for i in range(100) for q in base_questions]
+        questions = random.sample(questions, 100)
     else:
-        questions = random.sample(base_questions, 20)
+        questions = random.sample(base_questions, 100)
     
     rows = []
     
@@ -79,7 +79,7 @@ def show_question_table():
     df = pd.DataFrame(rows)
     
     st.markdown("### 📊 Question Quality Analysis")
-    st.markdown("Showing 20 randomly generated questions with quality metrics. Only questions with **ALL metrics > 0.7** will appear in the main chat interface.")
+    st.markdown("Showing 100 randomly generated questions with quality metrics. Only questions with **ALL metrics > 0.7** will appear in the main chat interface.")
     
     # Display the table
     st.dataframe(df, use_container_width=True)
@@ -90,7 +90,7 @@ def show_question_table():
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.metric("High Quality Questions", f"{high_quality_count}/20", f"{high_quality_count*5}%")
+        st.metric("High Quality Questions", f"{high_quality_count}/100", f"{high_quality_count}%")
     
     with col2:
         avg_coverage = sum(row["Coverage"] for row in rows) / len(rows)
