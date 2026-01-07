@@ -422,9 +422,28 @@ def display_suggested_questions():
     
     st.markdown("### 🎯 AI-Powered Suggested Questions")
     
-    for i, q_data in enumerate(suggested_questions, 1):
+    # Filter questions: Only show if ALL metrics > 0.7
+    high_quality_questions = []
+    for q_data in suggested_questions:
         metrics = q_data['metrics']
-        passes = q_data['passes_threshold']
+        # Check if ALL individual metrics are > 0.7
+        all_metrics_high = all([
+            metrics['coverage'] > 0.7,
+            metrics['specific'] > 0.7,
+            metrics['insight'] > 0.7,
+            metrics['grounded'] > 0.7
+        ])
+        
+        if all_metrics_high:
+            high_quality_questions.append(q_data)
+    
+    if not high_quality_questions:
+        st.info("🔍 No high-quality questions available yet. All metrics must be > 0.7 to display questions.")
+        return
+    
+    for i, q_data in enumerate(high_quality_questions, 1):
+        metrics = q_data['metrics']
+        passes = q_data['passes_threshold']  # This will now always be True for displayed questions
         
         # Create metric visualization
         col1, col2, col3 = st.columns([1, 8, 2])
@@ -433,84 +452,80 @@ def display_suggested_questions():
             st.write(f"**{i}.**")
         
         with col2:
-            # Question button with styling based on quality
-            button_type = "primary" if passes else "secondary"
+            # Question button - always primary since all metrics > 0.7
             if st.button(
                 q_data['question'], 
                 key=f"q_{i}",
                 use_container_width=True,
-                type=button_type if button_type == "primary" else None
+                type="primary"  # Always primary for high-quality questions
             ):
                 st.session_state.chat_history.append({"role": "user", "content": q_data['question']})
                 st.rerun()
         
         with col3:
-            # Quality indicator
-            if passes:
-                st.markdown("""
-                <div class="source-badge floating-element" style="text-align: center; font-size: 0.8rem;">
-                    ✅ High Quality
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown("""
-                <div style="text-align: center; color: #64748b; font-size: 0.8rem;">
-                    📊 Moderate
-                </div>
-                """, unsafe_allow_html=True)
+            # Quality indicator - always show as high quality
+            st.markdown("""
+            <div class="source-badge floating-element" style="text-align: center; font-size: 0.8rem;">
+                ✅ Premium Quality
+            </div>
+            """, unsafe_allow_html=True)
         
         # Detailed metrics in expander
-        with st.expander(f"📊 Metrics for Question {i}", expanded=False):
+        with st.expander(f"📊 Premium Metrics for Question {i}", expanded=False):
             col1, col2, col3, col4 = st.columns(4)
             
             with col1:
                 # Coverage metric
-                coverage_color = "#10b981" if metrics['coverage'] > 0 else "#ef4444"
+                coverage_value = metrics['coverage']
+                coverage_color = "#10b981" if coverage_value > 0.7 else "#ef4444"
                 st.markdown(f"""
                 <div style="text-align: center; padding: 10px; border-radius: 8px; background: {coverage_color}20;">
                     <h4 style="margin: 0; color: {coverage_color};">Coverage</h4>
-                    <p style="margin: 0; font-size: 1.2rem; font-weight: bold;">{metrics['coverage']:.2f}</p>
+                    <p style="margin: 0; font-size: 1.2rem; font-weight: bold;">{coverage_value:.3f}</p>
                     <p style="margin: 0; font-size: 0.8rem; color: #64748b;">
-                        {'✅ Good' if metrics['coverage'] > 0 else '❌ Poor'}
+                        {'✅ Excellent' if coverage_value > 0.7 else '❌ Needs Improvement'}
                     </p>
                 </div>
                 """, unsafe_allow_html=True)
             
             with col2:
                 # Specificity metric
-                specific_color = "#10b981" if metrics['specific'] > 0 else "#ef4444"
+                specific_value = metrics['specific']
+                specific_color = "#10b981" if specific_value > 0.7 else "#ef4444"
                 st.markdown(f"""
                 <div style="text-align: center; padding: 10px; border-radius: 8px; background: {specific_color}20;">
                     <h4 style="margin: 0; color: {specific_color};">Specificity</h4>
-                    <p style="margin: 0; font-size: 1.2rem; font-weight: bold;">{metrics['specific']:.2f}</p>
+                    <p style="margin: 0; font-size: 1.2rem; font-weight: bold;">{specific_value:.3f}</p>
                     <p style="margin: 0; font-size: 0.8rem; color: #64748b;">
-                        {'✅ Specific' if metrics['specific'] > 0 else '❌ Vague'}
+                        {'✅ Excellent' if specific_value > 0.7 else '❌ Needs Improvement'}
                     </p>
                 </div>
                 """, unsafe_allow_html=True)
             
             with col3:
                 # Insight metric
-                insight_color = "#10b981" if metrics['insight'] > 0 else "#ef4444"
+                insight_value = metrics['insight']
+                insight_color = "#10b981" if insight_value > 0.7 else "#ef4444"
                 st.markdown(f"""
                 <div style="text-align: center; padding: 10px; border-radius: 8px; background: {insight_color}20;">
                     <h4 style="margin: 0; color: {insight_color};">Insightful</h4>
-                    <p style="margin: 0; font-size: 1.2rem; font-weight: bold;">{metrics['insight']:.2f}</p>
+                    <p style="margin: 0; font-size: 1.2rem; font-weight: bold;">{insight_value:.3f}</p>
                     <p style="margin: 0; font-size: 0.8rem; color: #64748b;">
-                        {'✅ Actionable' if metrics['insight'] > 0 else '❌ Basic'}
+                        {'✅ Excellent' if insight_value > 0.7 else '❌ Needs Improvement'}
                     </p>
                 </div>
                 """, unsafe_allow_html=True)
             
             with col4:
                 # Grounded metric
-                grounded_color = "#10b981" if metrics['grounded'] > 0 else "#ef4444"
+                grounded_value = metrics['grounded']
+                grounded_color = "#10b981" if grounded_value > 0.7 else "#ef4444"
                 st.markdown(f"""
                 <div style="text-align: center; padding: 10px; border-radius: 8px; background: {grounded_color}20;">
                     <h4 style="margin: 0; color: {grounded_color};">Grounded</h4>
-                    <p style="margin: 0; font-size: 1.2rem; font-weight: bold;">{metrics['grounded']:.2f}</p>
+                    <p style="metric: 0; font-size: 1.2rem; font-weight: bold;">{grounded_value:.3f}</p>
                     <p style="margin: 0; font-size: 0.8rem; color: #64748b;">
-                        {'✅ Supported' if metrics['grounded'] > 0 else '❌ Unsupported'}
+                        {'✅ Excellent' if grounded_value > 0.7 else '❌ Needs Improvement'}
                     </p>
                 </div>
                 """, unsafe_allow_html=True)
