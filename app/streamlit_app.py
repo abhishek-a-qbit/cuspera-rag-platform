@@ -1995,7 +1995,7 @@ def main():
     elif page == "📋 Reports":
         page_reports()
     elif page == "📑 Question Table":
-        from app.question_table import show_question_table
+        from question_table import show_question_table
         show_question_table()
     else:
         page_status()
