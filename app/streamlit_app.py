@@ -384,7 +384,13 @@ def call_product_api(endpoint: str, method: str = "POST", data: Dict = None) -> 
     return call_api(endpoint, method, data, DEFAULT_PRODUCT)
 
 def display_suggested_questions():
-    """Display suggested questions with metrics visualization."""
+    """Display suggested questions with enhanced styling and metrics."""
+    st.markdown("### 🤖 AI-Powered Suggested Questions")
+    
+    # Initialize chat history if not exists
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
+
     if not QUESTION_GENERATOR_AVAILABLE:
         # Fallback questions
         fallback_questions = [
