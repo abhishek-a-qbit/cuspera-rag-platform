@@ -1890,7 +1890,7 @@ def sidebar():
     st.sidebar.markdown("### 🧭 Navigation")
     page = st.sidebar.radio(
         "",
-        ["💬 Chat", "📊 Analytics", "📋 Reports", "⚙️ Status"],
+        ["💬 Chat", "📊 Analytics", "📋 Reports", "📑 Question Table", "⚙️ Status"],
         label_visibility="collapsed"
     )
     
@@ -1994,6 +1994,10 @@ def main():
         page_analytics()
     elif page == "📋 Reports":
         page_reports()
+    elif page == "📑 Question Table":
+        import app.question_table as question_table
+        # Run the table page
+        question_table  # Streamlit will execute the script
     else:
         page_status()
 
