@@ -43,6 +43,9 @@ def show_question_table():
     else:
         questions = random.sample(base_questions, 100)
     
+    # Debug: Print number of questions generated
+    st.write(f"🔍 Debug: Generated {len(questions)} questions")
+    
     rows = []
     
     # Simple evaluation without RAG dependencies
@@ -77,6 +80,9 @@ def show_question_table():
         })
     
     df = pd.DataFrame(rows)
+    
+    # Debug: Print final dataframe size
+    st.write(f"🔍 Debug: Final dataframe has {len(df)} rows")
     
     st.markdown("### 📊 Question Quality Analysis")
     st.markdown("Showing 100 randomly generated questions with quality metrics. Only questions with **ALL metrics > 0.7** will appear in the main chat interface.")
