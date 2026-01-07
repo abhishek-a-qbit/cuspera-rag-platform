@@ -214,7 +214,6 @@ class EnhancedVectorStore:
         results = self.collection.query(
             query_texts=[query],
             n_results=top_k,
-            where={},  # Can add filters here if needed
             include=["documents", "metadatas", "distances"]
         )
         
