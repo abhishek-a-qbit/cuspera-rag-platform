@@ -426,21 +426,22 @@ def display_suggested_questions():
     high_quality_questions = []
     for q_data in suggested_questions:
         metrics = q_data['metrics']
-        # Check if ALL individual metrics are > 0.7
+        # Check if ALL individual metrics are > 0.7 and LLM safety is True
         all_metrics_high = all([
             metrics['coverage'] > 0.7,
             metrics['specific'] > 0.7,
             metrics['insight'] > 0.7,
-            metrics['grounded'] > 0.7
+            metrics['grounded'] > 0.7,
+            metrics.get('llm_safety', True)
         ])
         
         if all_metrics_high:
             high_quality_questions.append(q_data)
-    
+
     if not high_quality_questions:
-        st.info("🔍 No high-quality questions available yet. All metrics must be > 0.7 to display questions.")
+        st.info("🔍 No high-quality questions available yet. All metrics (including LLM safety) must be > 0.7 to display questions.")
         return
-    
+
     for i, q_data in enumerate(high_quality_questions, 1):
         metrics = q_data['metrics']
         passes = q_data['passes_threshold']  # This will now always be True for displayed questions

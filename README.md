@@ -5,7 +5,7 @@ A sophisticated Retrieval-Augmented Generation (RAG) application focused on 6sen
 ## ✨ Features
 
 ### 🎯 Core Capabilities
-- **OpenAI Integration**: GPT-4 powered responses with fallback support
+- **OpenAI Integration**: GPT-4 powered responses (primary and only LLM integration)
 - **Hybrid Search Engine**: Combines semantic search (60%) + keyword search (40%)
 - **Local Development**: Complete offline functionality with local API
 - **Interactive Analytics**: Detailed business scenario analysis with charts
@@ -77,8 +77,8 @@ Cuspera/
 ## 🔧 Configuration
 
 ### Environment Variables
-- `OPENAI_API_KEY`: OpenAI API key for GPT-4 responses (primary)
-- `GOOGLE_API_KEY`: Google Gemini API key (fallback option)
+- `OPENAI_API_KEY`: OpenAI API key for GPT-4 responses (primary and required)
+- `GOOGLE_API_KEY`: (Deprecated, not required for current deployment)
 
 ### API Endpoints
 - `POST /chat`: Chat interface with RAG responses
@@ -129,7 +129,7 @@ Your local Cuspera RAG Platform is now ready for development and testing with:
 │                    RAG PIPELINE                                 │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐ │
 │  │  Retrieval   │→ │  Generation  │→ │  Structured Output   │ │
-│  │  (Vector DB) │  │  (Gemini)    │  │  (JSON)              │ │
+│  │  (Vector DB) │  │  (OpenAI GPT-4) │  │  (JSON)              │ │
 │  └──────────────┘  └──────────────┘  └──────────────────────┘ │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -138,7 +138,7 @@ Your local Cuspera RAG Platform is now ready for development and testing with:
 
 - **Frontend**: Streamlit, Plotly, Pandas
 - **Backend**: FastAPI, Uvicorn
-- **AI/ML**: Google Gemini, Google Embeddings
+- **AI/ML**: OpenAI GPT-4 (primary and only integration)
 - **Database**: ChromaDB (Vector Store)
 - **Search**: BM25 + Semantic (Hybrid Search)
 - **Environment**: Python 3.11+
@@ -163,22 +163,23 @@ Cuspera/
 
 ## 🌐 Deployment
 
-### Streamlit Cloud
+### Streamlit Cloud (Frontend)
 1. Push to GitHub repository
 2. Connect to Streamlit Cloud
-3. Set environment variables
+3. Set environment variable OPENAI_API_KEY
 4. Deploy automatically
 
-### Render (Backend API)
-1. Connect GitHub repository to Render
-2. Set up as Web Service
-3. Configure environment variables
+### Railway (Backend API)
+1. Connect GitHub repository to Railway
+2. Set up as a web service
+3. Configure environment variable OPENAI_API_KEY
 4. Deploy with automatic scaling
 
 ## 🔑 Environment Variables
 
 ```bash
-GOOGLE_API_KEY=your_google_gemini_api_key
+OPENAI_API_KEY=your_openai_api_key_here
+# GOOGLE_API_KEY is deprecated and not required
 ```
 
 ## 📊 Data Sources
@@ -221,4 +222,4 @@ For issues and questions:
 
 ---
 
-**Built with ❤️ using Google Gemini, ChromaDB, and Streamlit**
+**Built with ❤️ using OpenAI GPT-4, ChromaDB, and Streamlit**

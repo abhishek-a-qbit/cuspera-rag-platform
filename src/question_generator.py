@@ -177,18 +177,19 @@ def generate_base_questions() -> List[str]:
     ]
 
 def generate_suggested_questions(target_count: int = 5) -> List[Dict]:
-    """Generate suggested questions for the chat interface."""
+    """Generate suggested questions for the chat interface with both RAGAS-style and LLM grading."""
     try:
+        from llm_grader import llm_grade_question
         # Load context
         context = load_product_context()
-        
         # Get base questions
         base_questions = generate_base_questions()
-        
-        # Evaluate and score questions
         evaluated_questions = []
         for question in base_questions[:target_count]:
+            # RAGAS-style metrics
             evaluation = evaluate_question_simple(question, context)
+            # LLM-as-a-judge metrics
+            llm_eval = llm_grade_question(question, context)
             evaluated_questions.append({
                 "question": question,
                 "metrics": {
@@ -196,30 +197,29 @@ def generate_suggested_questions(target_count: int = 5) -> List[Dict]:
                     "specific": evaluation.specific,
                     "insight": evaluation.insight,
                     "grounded": evaluation.grounded,
-                    "overall": evaluation.overall_score
+                    "overall": evaluation.overall_score,
+                    "llm_relevance": llm_eval.get("relevance_score", 0),
+                    "llm_specificity": llm_eval.get("specificity_score", 0),
+                    "llm_safety": llm_eval.get("safety_pass", False),
                 },
-                "passes_threshold": evaluation.passes_threshold,
-                "reasoning": evaluation.reasoning
+                "passes_threshold": evaluation.passes_threshold and llm_eval.get("safety_pass", False),
+                "reasoning": f"RAGAS: {evaluation.reasoning}\nLLM: {llm_eval.get('reasoning','')}"
             })
-        
-        # Sort by overall score
         evaluated_questions.sort(key=lambda x: x['metrics']['overall'], reverse=True)
-        
         return evaluated_questions[:target_count]
-        
     except Exception as e:
         print(f"Error generating questions: {e}")
         # Fallback questions
         return [
             {
                 "question": "What are the key capabilities of 6sense Revenue AI?",
-                "metrics": {"coverage": 0.8, "specific": 0.7, "insight": 0.6, "grounded": 0.9, "overall": 0.75},
+                "metrics": {"coverage": 0.8, "specific": 0.7, "insight": 0.6, "grounded": 0.9, "overall": 0.75, "llm_relevance": 0.9, "llm_specificity": 0.8, "llm_safety": True},
                 "passes_threshold": True,
                 "reasoning": "Comprehensive question about core capabilities"
             },
             {
                 "question": "How does 6sense help with account identification and targeting?",
-                "metrics": {"coverage": 0.7, "specific": 0.8, "insight": 0.7, "grounded": 0.8, "overall": 0.75},
+                "metrics": {"coverage": 0.7, "specific": 0.8, "insight": 0.7, "grounded": 0.8, "overall": 0.75, "llm_relevance": 0.85, "llm_specificity": 0.8, "llm_safety": True},
                 "passes_threshold": True,
                 "reasoning": "Specific question about targeting features"
             }
