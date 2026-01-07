@@ -1995,9 +1995,8 @@ def main():
     elif page == "📋 Reports":
         page_reports()
     elif page == "📑 Question Table":
-        import app.question_table as question_table
-        # Run the table page
-        question_table  # Streamlit will execute the script
+        from app.question_table import show_question_table
+        show_question_table()
     else:
         page_status()
 
