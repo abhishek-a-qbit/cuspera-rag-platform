@@ -807,13 +807,15 @@ def page_chat():
             # Debug the response structure
             st.write(f"🔍 Debug: Answer received - {answer[:100]}...")
             st.write(f"🔍 Debug: Full response - {result}")
+            st.write(f"🔍 Debug: Chat history length - {len(st.session_state.chat_history)}")
+            st.write(f"🔍 Debug: Last message - {st.session_state.chat_history[-1] if st.session_state.chat_history else 'No messages'}")
             
             # Display answer with success animation
             st.markdown(f"""
             <div class="metric-card floating-element" style="text-align: center;">
                 <div style="font-size: 2rem; margin-bottom: 10px;">✅</div>
                 <h3 style="margin: 0; color: white;">Response Received!</h3>
-                <p style="margin: 5px 0 0; font-size: 0.9rem; opacity: 0.9;">AI has processed your question</p>
+                <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">AI has processed your question</p>
             </div>
             """, unsafe_allow_html=True)
             
