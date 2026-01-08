@@ -22,6 +22,7 @@ def show_question_table():
         st.write("🔍 Using enhanced question generator with real datasets...")
         
         # Add timeout protection and better debugging
+        import time
         start_time = time.time()
         questions_with_metrics = generate_enhanced_questions(100)
         generation_time = time.time() - start_time
