@@ -437,7 +437,7 @@ def display_suggested_questions():
         # Check if ALL individual metrics are > 0.7 and LLM safety is True
         all_metrics_high = all([
             metrics['coverage'] > 0.7,
-            metrics['specific'] > 0.7,
+            metrics['specificity'] > 0.7,  # Fixed: 'specific' -> 'specificity'
             metrics['insight'] > 0.7,
             metrics['grounded'] > 0.7,
             metrics.get('llm_safety', True)
@@ -499,7 +499,7 @@ def display_suggested_questions():
             
             with col2:
                 # Specificity metric
-                specific_value = metrics['specific']
+                specific_value = metrics['specificity']  # Fixed: 'specific' -> 'specificity'
                 specific_color = "#10b981" if specific_value > 0.7 else "#ef4444"
                 st.markdown(f"""
                 <div style="text-align: center; padding: 10px; border-radius: 8px; background: {specific_color}20;">
