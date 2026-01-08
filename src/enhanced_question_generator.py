@@ -47,32 +47,43 @@ class EnhancedQuestionGenerator:
         """Initialize BM25 and semantic retrievers with real datasets."""
         try:
             print("[QGEN] Loading datasets from database...")
+            print(f"[QGEN] Database path: {DATABASE_PATH}")
+            print(f"[QGEN] Database exists: {os.path.exists(DATABASE_PATH)}")
+            
             self.documents = load_all_datasets(DATABASE_PATH)
             
             if not self.documents:
-                print("[QGEN] No documents found, falling back to mock data")
+                print(f"[QGEN] No documents found, falling back to mock data")
+                print(f"[QGEN] Document count: {len(self.documents) if self.documents else 0}")
                 return
             
             print(f"[QGEN] Loaded {len(self.documents)} documents")
             
             # Initialize vector store with semantic search
+            print("[QGEN] Initializing vector store...")
             self.vector_store = VectorStore(use_hybrid=True)
             self.vector_store.index_documents(self.documents)
-            
-            print("[QGEN] Initialized semantic retriever")
+            print("[QGEN] Vector store initialized")
             
             # Initialize hybrid searcher (BM25 + semantic)
+            print("[QGEN] Initializing hybrid searcher...")
             self.hybrid_searcher = HybridSearcher(
                 semantic_weight=0.6,
                 keyword_weight=0.4
             )
             self.hybrid_searcher.initialize(documents=self.documents)
+            print("[QGEN] Hybrid searcher initialized")
             
-            print("[QGEN] Initialized hybrid searcher (BM25 + semantic)")
             self.initialized = True
+            print("[QGEN] Enhanced question generator fully initialized")
             
+        except ImportError as e:
+            print(f"[QGEN] Import error: {e}")
+            print("[QGEN] Falling back to mock data generation")
+            self.initialized = False
         except Exception as e:
             print(f"[QGEN] Error initializing retrievers: {e}")
+            print(f"[QGEN] Error details: {type(e).__name__}: {str(e)}")
             self.initialized = False
     
     def retrieve_relevant_chunks(self, query: str, top_k: int = 5, use_hybrid: bool = True) -> List[Dict[str, Any]]:
