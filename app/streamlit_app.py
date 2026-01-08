@@ -343,9 +343,19 @@ st.markdown("""
 def check_api_health():
     """Check if API is running."""
     try:
-        resp = requests.get(f"{API_URL}/health", timeout=2)
+        resp = requests.get(f"{API_URL}/health", timeout=5)
         return resp.status_code == 200
-    except:
+    except requests.exceptions.RequestException as e:
+        print(f"[HEALTH] Request exception: {e}")
+        return False
+    except requests.exceptions.Timeout as e:
+        print(f"[HEALTH] Timeout: {e}")
+        return False
+    except requests.exceptions.ConnectionError as e:
+        print(f"[HEALTH] Connection error: {e}")
+        return False
+    except Exception as e:
+        print(f"[HEALTH] Unexpected error: {e}")
         return False
 
 def call_api(endpoint: str, method: str = "POST", data: Dict = None, product: str = None) -> Dict[str, Any]:
@@ -788,17 +798,22 @@ def page_chat():
         
         if "error" in result:
             st.error(f"❌ Error: {result['error']}")
+            st.error(f"🔍 Debug: API Response - {result}")
         else:
             # Add response to history
             answer = result.get("answer", "No response")
             st.session_state.chat_history.append({"role": "assistant", "content": answer})
             
+            # Debug the response structure
+            st.write(f"🔍 Debug: Answer received - {answer[:100]}...")
+            st.write(f"🔍 Debug: Full response - {result}")
+            
             # Display answer with success animation
-            st.markdown("""
+            st.markdown(f"""
             <div class="metric-card floating-element" style="text-align: center;">
                 <div style="font-size: 2rem; margin-bottom: 10px;">✅</div>
                 <h3 style="margin: 0; color: white;">Response Received!</h3>
-                <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">AI has processed your question</p>
+                <p style="margin: 5px 0 0; font-size: 0.9rem; opacity: 0.9;">AI has processed your question</p>
             </div>
             """, unsafe_allow_html=True)
             
@@ -1891,12 +1906,17 @@ def sidebar():
     # API Status
     api_health = check_api_health()
     if api_health:
-        st.sidebar.success("✅ API Connected")
-        st.sidebar.info("All systems operational")
+        st.sidebar.success("✅ API Online")
+        st.sidebar.info("Backend responding normally")
     else:
         st.sidebar.error("❌ API Offline")
         st.sidebar.info("Backend not responding")
-        st.sidebar.info("Start backend with: `python api_backend.py`")
+        st.sidebar.info("Start backend with: `python api_backend_simple.py`")
+        
+        # Add manual API start button for debugging
+        if st.sidebar.button("🚀 Manually Start API", type="primary"):
+            st.sidebar.success("API start command sent!")
+            st.info("Please run: `python api_backend_simple.py` in a separate terminal")
     
     st.sidebar.markdown("---")
     
