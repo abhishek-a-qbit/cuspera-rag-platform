@@ -379,8 +379,9 @@ async def stats_endpoint():
 # ============ RUN ============
 
 if __name__ == "__main__":
-    # Use PORT env var (Railway sets this), fallback to 8000
-    port = int(os.getenv("PORT", 8000))
+    # Force port 8000 for Railway compatibility
+    port = 8000  # Railway's default port
+    logger.info(f"Starting server on port {port}")
     uvicorn.run(
         app,
         host="0.0.0.0",
