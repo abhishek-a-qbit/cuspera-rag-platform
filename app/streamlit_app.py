@@ -31,7 +31,7 @@ except ImportError:
 
 # API URL - supports both local and production environments
 # Default to Railway API for Streamlit Cloud deployment
-API_URL = os.getenv("API_URL", "https://cuspera-rag-platform-production.railway.app")
+API_URL = os.getenv("API_URL", "https://cuspera-rag-platform-production.railway.app:8000")
 
 # Product Configuration - Currently only 6sense, ready for future expansion
 PRODUCTS = {
