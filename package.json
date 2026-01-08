@@ -1,1 +1,18 @@
-{"name": "cuspera-rag-platform", "version": "1.0.0", "description": "6sense Revenue AI RAG Platform", "main": "api_backend_simple.py", "scripts": {"start": "python api_backend_simple.py", "dev": "python api_backend_simple.py"}, "dependencies": {"fastapi": "^0.104.1", "uvicorn": "^0.24.0", "python-dotenv": "^1.0.0", "requests": "^2.31.0", "pydantic": "^2.5.0"}, "engines": {"python": ">=3.8"}}
+{
+  "name": "cuspera-rag-platform",
+  "version": "1.0.0",
+  "description": "Cuspera RAG Platform - Product Intelligence System",
+  "main": "api_backend_simple.py",
+  "scripts": {
+    "start": "python api_backend_simple.py"
+  },
+  "dependencies": {
+    "fastapi": "^0.104.1",
+    "uvicorn": "^0.24.0",
+    "python-dotenv": "^1.0.0",
+    "pydantic": "^2.5.0"
+  },
+  "engines": {
+    "python": ">=3.8"
+  }
+}
