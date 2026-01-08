@@ -105,48 +105,33 @@ async def health():
 
 @app.post("/chat", response_model=ChatResponse, tags=["Chat"])
 async def chat(request: ChatRequest):
-    """Chat endpoint with RAG pipeline."""
+    """Chat endpoint with simplified RAG system."""
     try:
-        # Import RAG components with error handling
-        try:
-            from rag_graph import create_enhanced_rag_graph, run_rag_query
-            # Create RAG graph
-            rag_graph = create_enhanced_rag_graph()
-            
-            # Run query
-            result = run_rag_query(rag_graph, request.question, request.product)
-            
-            return ChatResponse(
-                answer=result.get("answer", f"I understand you're asking about: '{request.question}'. Let me help you with information about {request.product}."),
-                sources=result.get("sources", []),
-                context=result.get("context", "Generated using RAG pipeline"),
-                confidence=result.get("confidence", 0.8),
-                follow_up_suggestions=result.get("follow_up_suggestions", [])
-            )
-        except ImportError as e:
-            logger.error(f"RAG import error: {e}")
-            # Fallback response when RAG components fail to import
-            return ChatResponse(
-                answer=f"I understand you're asking about: '{request.question}'. However, I'm having trouble with my advanced RAG components right now. Let me provide you with some basic information about {request.product}: {request.product} is a B2B Revenue AI platform that helps companies identify and target in-market buyers through predictive analytics and AI-powered targeting. Key features include account identification, lead scoring, and revenue intelligence.",
-                sources=[],
-                context="Fallback response due to import error",
-                confidence=0.6,
-                follow_up_suggestions=[
-                    "What are the key features of 6sense?",
-                    "How does 6sense help with account identification?",
-                    "What industries benefit most from 6sense?",
-                    "How does 6sense identify in-market buyers?"
-                ]
-            )
-        except Exception as e:
-            logger.error(f"Chat error: {e}")
-            return ChatResponse(
-                answer=f"I'm having trouble processing your question about '{request.question}'. Please try again or contact support.",
-                sources=[],
-                context="Error occurred during processing",
-                confidence=0.1,
-                follow_up_suggestions=["Try rephrasing your question", "Check your network connection"]
-            )
+        # Import simple RAG system
+        from simple_rag import SimpleRAG
+        
+        # Create simple RAG instance
+        rag = SimpleRAG()
+        
+        # Process question
+        result = rag.query(request.question, request.product)
+        
+        return ChatResponse(
+            answer=result.get("answer"),
+            sources=result.get("sources", []),
+            context=result.get("context", "Generated using simple RAG system"),
+            confidence=result.get("confidence", 0.8),
+            follow_up_suggestions=result.get("follow_up_suggestions", [])
+        )
+    except Exception as e:
+        logger.error(f"Chat error: {e}")
+        return ChatResponse(
+            answer=f"I'm having trouble processing your question about '{request.question}'. Please try again or contact support.",
+            sources=[],
+            context="Error occurred during processing",
+            confidence=0.1,
+            follow_up_suggestions=["Try rephrasing your question", "Check your network connection"]
+        )
 
 @app.post("/analytics", response_model=AnalyticsResponse, tags=["Analytics"])
 async def analytics(request: AnalyticsRequest):
