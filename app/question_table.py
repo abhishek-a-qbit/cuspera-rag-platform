@@ -127,7 +127,7 @@ def show_question_table():
     rows = []
     for q_data in questions_with_metrics:
         metrics = q_data['metrics']
-        llm_eval = q_data['llm_eval']
+        llm_eval = q_data.get('llm_eval', {})  # Use .get() with default empty dict
         
         rows.append({
             "Question": q_data['question'],

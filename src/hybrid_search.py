@@ -151,6 +151,14 @@ class HybridSearcher:
         doc_scores.sort(key=lambda x: x[1], reverse=True)
         return doc_scores[:top_k]
     
+    def search(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
+        """
+        Alias for hybrid_search method to maintain compatibility.
+        
+        Returns: List of documents ranked by combined score
+        """
+        return self.hybrid_search(query, top_k=top_k)
+    
     def hybrid_search(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
         """
         Perform hybrid search combining semantic and keyword search.
