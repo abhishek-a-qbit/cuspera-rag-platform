@@ -412,9 +412,17 @@ def display_suggested_questions():
                     st.rerun()
         return
     
-    # Generate questions with metrics
-    with st.spinner("🤔 Generating intelligent suggestions..."):
-        suggested_questions = generate_suggested_questions(5)
+    # Generate questions with enhanced metrics
+    with st.spinner("🤔 Generating intelligent suggestions from real datasets..."):
+        try:
+            from enhanced_question_generator import generate_enhanced_questions
+            suggested_questions = generate_enhanced_questions(5)
+        except ImportError:
+            # Fallback to original generator if enhanced not available
+            suggested_questions = generate_suggested_questions(5)
+        except Exception as e:
+            st.error(f"Error generating questions: {e}")
+            suggested_questions = []
     
     if not suggested_questions:
         st.info("No suggestions available at the moment.")
