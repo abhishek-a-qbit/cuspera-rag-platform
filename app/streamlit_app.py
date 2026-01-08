@@ -361,7 +361,7 @@ def check_api_health():
         return False
 
 def call_api(endpoint: str, method: str = "POST", data: Dict = None, product: str = None) -> Dict[str, Any]:
-    """Call API endpoint with product routing."""
+    """Call API endpoint with product routing and Railway compatibility."""
     try:
         # Use default product if none specified
         if product is None:
@@ -377,82 +377,89 @@ def call_api(endpoint: str, method: str = "POST", data: Dict = None, product: st
         
         data["product"] = product
         
-        # If API is not available, provide fallback responses
-        if not check_api_health():
-            if endpoint == "/chat":
-                question = data.get("question", "No question provided")
-                return {
-                    "answer": f"I understand you're asking about: '{question}'. However, the API backend is currently not running. Please start the backend API service to get proper AI-powered responses. For now, I can tell you that 6sense is a B2B Revenue AI platform that helps companies identify and target in-market buyers.",
-                    "sources": [],
-                    "context": "Fallback response due to API unavailability",
-                    "confidence": 0.5,
-                    "follow_up_suggestions": [
-                        "What are the key features of 6sense?",
-                        "How does 6sense help with revenue growth?",
-                        "What industries benefit most from 6sense?"
-                    ]
-                }
-            elif endpoint == "/analytics":
-                return {
-                    "analytics": {
-                        "metrics": [
-                            {"label": "Revenue Impact", "value": "+25%", "category": "Growth"},
-                            {"label": "Lead Quality", "value": "High", "category": "Quality"},
-                            {"label": "ROI", "value": "3.5x", "category": "Return"},
-                            {"label": "Customer Satisfaction", "value": "92%", "category": "Satisfaction"}
+        # Check if this is Railway default API vs our custom API
+        if endpoint == "/health":
+            # Try health endpoint first
+            resp = requests.get(f"{API_URL}{endpoint}", timeout=5)
+            if resp.status_code == 200:
+                # Check if it's our API or Railway default
+                content = resp.text.strip()
+                if "Home of the Railway API" in content:
+                    # Railway default API - create mock health response
+                    return {
+                        "status": "ok",
+                        "service": "Railway Default API",
+                        "backend": "Railway Default",
+                        "rag_ready": False,
+                        "vector_store_ready": False,
+                        "note": "Using Railway default API - upgrade to custom backend"
+                    }
+                else:
+                    # Our custom API - parse real response
+                    return resp.json()
+            else:
+                return {"error": f"Health check failed: {resp.status_code}"}
+        
+        # For chat endpoint, check if Railway default API
+        if endpoint == "/chat":
+            # Try chat endpoint
+            resp = requests.post(f"{API_URL}{endpoint}", json=data, timeout=30)
+            if resp.status_code == 200:
+                # Check if it's our API or Railway default
+                try:
+                    response_data = resp.json()
+                    if "answer" in response_data:
+                        # Our custom API - return response
+                        return response_data
+                    else:
+                        # Railway default API - create fallback response
+                        question = data.get("question", "No question provided")
+                        return {
+                            "answer": f"I understand you're asking about: '{question}'. However, you're currently connected to Railway's default API instead of our custom backend. Please check your Railway deployment configuration to ensure 'api_backend_simple.py' is being deployed. For now, I can tell you that 6sense is a B2B Revenue AI platform that helps companies identify and target in-market buyers and drive revenue growth through predictive analytics and AI-powered targeting.",
+                            "sources": [],
+                            "context": "Fallback response - Railway default API detected",
+                            "confidence": 0.4,
+                            "follow_up_suggestions": [
+                                "What are the key features of 6sense?",
+                                "How does 6sense help with revenue growth?",
+                                "What industries benefit most from 6sense?",
+                                "How does 6sense identify in-market buyers?"
+                            ]
+                        }
+                except:
+                    # If JSON parsing fails, assume Railway default
+                    question = data.get("question", "No question provided")
+                    return {
+                        "answer": f"I understand you're asking about: '{question}'. However, you're currently connected to Railway's default API instead of our custom backend. Please check your Railway deployment configuration to ensure 'api_backend_simple.py' is being deployed. For now, I can tell you that 6sense is a B2B Revenue AI platform that helps companies identify and target in-market buyers and drive revenue growth through predictive analytics and AI-powered targeting.",
+                        "sources": [],
+                        "context": "Fallback response - Railway default API detected",
+                        "confidence": 0.4,
+                        "follow_up_suggestions": [
+                            "What are the key features of 6sense?",
+                            "How does 6sense help with revenue growth?",
+                            "What industries benefit most from 6sense?",
+                            "How does 6sense identify in-market buyers?"
                         ]
                     }
-                }
-            elif endpoint == "/reports":
-                return {
-                    "report": {
-                        "summary": "6sense Revenue AI provides comprehensive B2B intelligence and targeting capabilities.",
-                        "recommendation": "Implement 6sense for improved revenue growth and lead quality."
-                    }
-                }
             else:
-                return {"error": "API not available"}
-        
-        if method == "POST":
-            resp = requests.post(f"{API_URL}{endpoint}", json=data, timeout=30)
+                return {"error": f"Chat request failed: {resp.status_code}"}
         else:
-            resp = requests.get(f"{API_URL}{endpoint}", timeout=30)
-        
-        if resp.status_code == 200:
-            return resp.json()
-        elif resp.status_code == 404:
-            # API endpoint not found - Railway has wrong backend deployed
-            if endpoint == "/chat":
-                question = data.get("question", "No question provided")
-                return {
-                    "answer": f"I understand you're asking about: '{question}'. However, the API backend is not properly deployed on Railway. The current deployment shows a default Railway page instead of our API endpoints. Please check the Railway deployment configuration to ensure 'api_backend_simple.py' is being used instead of the basic API. For now, I can tell you that 6sense is a B2B Revenue AI platform that helps companies identify in-market buyers and drive revenue growth through predictive analytics and AI-powered targeting.",
-                    "sources": [],
-                    "context": "Fallback response - Railway API not properly deployed",
-                    "confidence": 0.4,
-                    "follow_up_suggestions": [
-                        "What are the key features of 6sense?",
-                        "How does 6sense help with revenue growth?",
-                        "What industries benefit most from 6sense?",
-                        "How does 6sense identify in-market buyers?"
-                    ]
-                }
-            else:
-                return {"error": f"API endpoint {endpoint} not found - Railway deployment issue"}
-        else:
-            return {"error": f"API error: {resp.status_code} - {resp.text[:200]}"}
+            return {"error": "Endpoint not supported"}
+            
     except requests.exceptions.Timeout:
         # Provide fallback response for chat on timeout
         if endpoint == "/chat":
             question = data.get("question", "No question provided")
             return {
-                "answer": f"I understand you're asking about: '{question}'. However, the API request timed out. This might be due to high server load or network issues. 6sense is a powerful B2B Revenue AI platform that helps companies identify in-market buyers and drive revenue growth.",
+                "answer": f"I understand you're asking about: '{question}'. However, the API request timed out. This might be due to high server load or network issues. 6sense is a powerful B2B Revenue AI platform that helps companies identify in-market buyers and drive revenue growth through predictive analytics and AI-powered targeting.",
                 "sources": [],
                 "context": "Fallback response due to API timeout",
                 "confidence": 0.3,
                 "follow_up_suggestions": [
                     "What are the key features of 6sense?",
-                    "How does 6sense work?",
-                    "What are the benefits of 6sense?"
+                    "How does 6sense help with revenue growth?",
+                    "What industries benefit most from 6sense?",
+                    "How does 6sense identify in-market buyers?"
                 ]
             }
         return {"error": "Request timeout (API taking too long)"}
