@@ -2202,7 +2202,8 @@ def main():
     """, unsafe_allow_html=True)
     
     # Check API
-    if check_api_health():
+    health = call_api("/health", method="GET")
+    if health and "error" not in health:
         st.success("✅ API Online")
         st.success("✅ Railway API responding normally")
         st.success("✅ Backend deployed and working")
@@ -2215,7 +2216,7 @@ def main():
         })
     else:
         st.error("❌ API Not Running")
-        st.info("Start the backend with: `python api_backend_simple.py`")
+        st.info("Start the backend with: python api_backend_simple.py")
     
     # Route to pages
     if page == "💬 Chat":
