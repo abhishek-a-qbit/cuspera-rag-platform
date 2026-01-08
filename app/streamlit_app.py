@@ -1949,19 +1949,32 @@ def page_status():
             stats = call_api("/stats", method="GET")
         
         if "error" not in stats:
-            st.success("✅ Railway API responding")
-            st.info("Simple backend deployed - limited stats available")
-            st.json({
-                "status": "Backend working",
-                "service": "Railway Simple API",
-                "note": "Using api_backend_railway.py",
-                "available_endpoints": ["/health", "/chat"]
-            })
+            # Check if it's Railway default API response
+            if stats.get("service") == "Railway Default API":
+                st.warning("🔧 Railway Default API Detected")
+                st.info("Limited statistics available with Railway default API")
+                st.json({
+                    "status": "Railway Default API",
+                    "service": "Default Railway Service",
+                    "note": "Custom backend not deployed",
+                    "available_endpoints": ["/health"],
+                    "recommendation": "Deploy api_backend_simple.py for full functionality"
+                })
+            else:
+                # Our custom API - show full stats
+                st.success("✅ Custom API Responding")
+                st.json(stats)
         else:
-            vs = stats.get("vector_store", {})
-            st.metric("Documents Indexed", vs.get("count", "Not available"))
-            st.metric("Collection", vs.get("collection_name", "Not available"))
-            st.json(stats.get("product", {}))
+            # Handle Railway default API case
+            st.warning("🔧 Railway Default API Detected")
+            st.info("Statistics endpoint not available with Railway default API")
+            st.json({
+                "status": "Railway Default API",
+                "service": "Default Railway Service", 
+                "note": "Custom backend not deployed",
+                "available_endpoints": ["/health"],
+                "recommendation": "Deploy api_backend_simple.py for full functionality"
+            })
     
     st.markdown("---")
     st.markdown("### Available Products")
