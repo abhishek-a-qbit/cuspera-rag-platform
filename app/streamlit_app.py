@@ -2084,7 +2084,7 @@ def page_status():
 def main():
     """Main app."""
     # Sidebar
-    page = st.sidebar()
+    page = sidebar()
     
     # Check API
     if not check_api_health():
