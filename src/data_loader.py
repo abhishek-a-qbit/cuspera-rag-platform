@@ -114,3 +114,18 @@ def create_searchable_text(doc: Dict[str, Any]) -> str:
     parts.append(doc.get("content", ""))
     
     return " ".join(filter(None, parts))
+
+
+def load_cuspera_data(database_path: str | None = None):
+    """Compatibility wrapper used by tests and callers expecting `load_cuspera_data`.
+
+    By default it loads from the `Database` folder in the repo root unless
+    an explicit `database_path` is provided.
+    """
+    if database_path is None:
+        # Default to the workspace Database folder
+        base = Path(__file__).resolve().parents[1] / "Database"
+    else:
+        base = Path(database_path)
+
+    return load_all_datasets(str(base))

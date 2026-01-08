@@ -9,8 +9,13 @@ import numpy as np
 from pathlib import Path
 from rank_bm25 import BM25Okapi
 import chromadb
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+try:
+    from langchain_google_genai import GoogleGenerativeAIEmbeddings
+except Exception:
+    GoogleGenerativeAIEmbeddings = None
+
 import os
+from config import COLLECTION_NAME as DEFAULT_COLLECTION_NAME
 
 
 class HybridSearcher:
@@ -39,15 +44,26 @@ class HybridSearcher:
         self.bm25_index = None
         self.documents = []
     
-    def initialize(self, db_path: str = "./chroma_db", collection_name: str = "cuspera", documents: List[Dict[str, Any]] = None):
+    def initialize(self, db_path: str = "./chroma_db", collection_name: str | None = None, documents: List[Dict[str, Any]] = None):
         """Initialize vector store and keyword index."""
-        # Initialize embeddings
-        self.embeddings = GoogleGenerativeAIEmbeddings(
-            model="models/embedding-001",
-            google_api_key=os.getenv("GOOGLE_API_KEY")
-        )
+        # Initialize embeddings if available and API key provided
+        google_key = os.getenv("GOOGLE_API_KEY")
+        if GoogleGenerativeAIEmbeddings and google_key:
+            try:
+                self.embeddings = GoogleGenerativeAIEmbeddings(
+                    model="models/embedding-001",
+                    google_api_key=google_key
+                )
+            except Exception as e:
+                print(f"[WARNING] Google embeddings init failed: {e}")
+                self.embeddings = None
+        else:
+            self.embeddings = None
         
         # Initialize ChromaDB
+        if collection_name is None:
+            collection_name = DEFAULT_COLLECTION_NAME
+
         self.chromadb_client = chromadb.PersistentClient(path=db_path)
         self.collection = self.chromadb_client.get_collection(name=collection_name)
         
