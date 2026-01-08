@@ -419,8 +419,26 @@ def call_api(endpoint: str, method: str = "POST", data: Dict = None, product: st
         
         if resp.status_code == 200:
             return resp.json()
+        elif resp.status_code == 404:
+            # API endpoint not found - Railway has wrong backend deployed
+            if endpoint == "/chat":
+                question = data.get("question", "No question provided")
+                return {
+                    "answer": f"I understand you're asking about: '{question}'. However, the API backend is not properly deployed on Railway. The current deployment shows a default Railway page instead of our API endpoints. Please check the Railway deployment configuration to ensure 'api_backend_simple.py' is being used instead of the basic API. For now, I can tell you that 6sense is a B2B Revenue AI platform that helps companies identify in-market buyers and drive revenue growth through predictive analytics and AI-powered targeting.",
+                    "sources": [],
+                    "context": "Fallback response - Railway API not properly deployed",
+                    "confidence": 0.4,
+                    "follow_up_suggestions": [
+                        "What are the key features of 6sense?",
+                        "How does 6sense help with revenue growth?",
+                        "What industries benefit most from 6sense?",
+                        "How does 6sense identify in-market buyers?"
+                    ]
+                }
+            else:
+                return {"error": f"API endpoint {endpoint} not found - Railway deployment issue"}
         else:
-            return {"error": f"API error: {resp.status_code}"}
+            return {"error": f"API error: {resp.status_code} - {resp.text[:200]}"}
     except requests.exceptions.Timeout:
         # Provide fallback response for chat on timeout
         if endpoint == "/chat":
