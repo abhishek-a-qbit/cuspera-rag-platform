@@ -209,6 +209,12 @@ class EnhancedQuestionGenerator:
     
     def generate_questions_with_metrics(self, num_questions: int = 100) -> List[Dict[str, Any]]:
         """Generate questions with real metrics from datasets."""
+        print(f"[QGEN] Initialization status: {self.initialized}")
+        print(f"[QGEN] Documents loaded: {len(self.documents) if hasattr(self, 'documents') else 'No documents attribute'}")
+        print(f"[QGEN] Vector store available: {self.vector_store is not None}")
+        print(f"[QGEN] Hybrid searcher available: {self.hybrid_searcher is not None}")
+        print(f"[QGEN] Dataset available: {DATASET_AVAILABLE}")
+        
         if not self.initialized:
             print("[QGEN] Not initialized, returning fallback questions")
             return self._generate_fallback_questions(num_questions)
