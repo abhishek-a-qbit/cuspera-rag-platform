@@ -2223,8 +2223,24 @@ def main():
             "vector_store_ready": health.get("vector_store_ready")
         })
     else:
-        st.error("❌ API Not Running")
-        st.info("Start the backend with: python api_backend_simple.py")
+        # Check if it's Railway default API issue
+        if "Railway Default API" in str(health):
+            st.error("❌ Railway Default API Detected")
+            st.warning("🔧 Railway is deploying default API instead of custom backend")
+            st.info("Please check Railway deployment configuration")
+            st.code("Start Command: python api_backend_simple.py")
+            st.markdown("""
+            ### 🚀 Railway Deployment Fix Needed:
+            
+            1. Go to your Railway dashboard
+            2. Update the Start Command to: `python api_backend_simple.py`
+            3. Ensure the correct files are deployed
+            4. Redeploy the Railway service
+            5. The app will work automatically after proper deployment
+            """)
+        else:
+            st.error("❌ API Not Running")
+            st.info("Backend not responding - check configuration")
     
     # Route to pages
     if page == "💬 Chat":
