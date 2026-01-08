@@ -415,9 +415,13 @@ def display_suggested_questions():
     # Generate questions with enhanced metrics
     with st.spinner("🤔 Generating intelligent suggestions from real datasets..."):
         try:
+            import sys
+            import os
+            sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
             from enhanced_question_generator import generate_enhanced_questions
             suggested_questions = generate_enhanced_questions(5)
-        except ImportError:
+            st.success("✅ Enhanced question generator loaded successfully!")
+        except ImportError as e:
             # Fallback to original generator if enhanced not available
             suggested_questions = generate_suggested_questions(5)
         except Exception as e:
