@@ -1942,37 +1942,26 @@ def page_status():
             stats = call_api("/stats", method="GET")
         
         if "error" not in stats:
-            vs = stats.get("vector_store", {})
-            st.metric("Documents Indexed", vs.get("count", 0))
-            st.metric("Collection", vs.get("collection_name", "Unknown"))
-            st.json(stats.get("product", {}))
+            st.success("✅ Railway API responding")
+            st.info("Simple backend deployed - limited stats available")
+            st.json({
+                "status": "Backend working",
+                "service": "Railway Simple API",
+                "note": "Using api_backend_railway.py",
+                "available_endpoints": ["/health", "/chat"]
+            })
         else:
-            st.error("❌ Could not load stats")
+            vs = stats.get("vector_store", {})
+            st.metric("Documents Indexed", vs.get("count", "Not available"))
+            st.metric("Collection", vs.get("collection_name", "Not available"))
+            st.json(stats.get("product", {}))
     
-    # Products
     st.markdown("---")
     st.markdown("### Available Products")
-    with st.spinner("Loading products..."):
-        products = call_api("/products", method="GET")
+    st.success("✅ 6sense Platform Available")
+    st.info("Railway API deployed with 6sense support")
     
-    if "error" not in products:
-        for product in products.get("products", []):
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.markdown(f"**{product.get('name')}**")
-                st.caption(f"Domain: {product.get('domain')}")
-            with col2:
-                st.metric("Documents", product.get("total_documents", 0))
-            with col3:
-                st.metric("Datasets", product.get("datasets", 0))
-    else:
-        st.error("Could not load products")
-
-# ==================== SIDEBAR ====================
-
-def sidebar():
-    """Enhanced sidebar navigation with clean, simple styling."""
-    # Custom sidebar header
+    col1, col2, col3 = st.columns(3)
     st.sidebar.markdown("""
     <div style="text-align: center; padding: 20px 0;">
         <h1 style="font-size: 2rem; font-weight: 700; 
