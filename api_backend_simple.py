@@ -105,13 +105,13 @@ async def health():
 
 @app.post("/chat", response_model=ChatResponse, tags=["Chat"])
 async def chat(request: ChatRequest):
-    """Chat endpoint with simplified RAG system."""
+    """Chat endpoint with complete self-contained RAG system."""
     try:
-        # Import simple RAG system
-        from simple_rag import SimpleRAG
+        # Import self-contained RAG system
+        from self_contained_rag import SelfContainedRAG
         
-        # Create simple RAG instance
-        rag = SimpleRAG()
+        # Initialize RAG system with data path
+        rag = SelfContainedRAG(data_path="./data")
         
         # Process question
         result = rag.query(request.question, request.product)
@@ -119,7 +119,7 @@ async def chat(request: ChatRequest):
         return ChatResponse(
             answer=result.get("answer"),
             sources=result.get("sources", []),
-            context=result.get("context", "Generated using simple RAG system"),
+            context=result.get("context", "Generated using self-contained RAG system"),
             confidence=result.get("confidence", 0.8),
             follow_up_suggestions=result.get("follow_up_suggestions", [])
         )
