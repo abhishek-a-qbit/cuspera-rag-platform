@@ -38,6 +38,64 @@ def show_question_table():
         if len(chunk_sources) < 50:  # If most are fallback, show warning
             st.warning("⚠️ Limited chunk-based questions. Dataset may not be available.")
         
+        # Display questions in a nice table
+        if questions_with_metrics:
+            df = pd.DataFrame(questions_with_metrics)
+            
+            # Select columns to display
+            display_cols = ['question', 'coverage', 'specificity', 'insight', 'grounded', 'overall_score']
+            if 'llm_eval' in questions_with_metrics[0]:
+                display_cols.extend(['relevance_score', 'answerability_score', 'clarity_score'])
+            if 'context_source' in questions_with_metrics[0]:
+                display_cols.append('context_source')
+            if 'chunk_id' in questions_with_metrics[0]:
+                display_cols.append('chunk_id')
+            
+            # Create display DataFrame with only available columns
+            display_df = df[display_cols].copy()
+            
+            # Rename columns for better display
+            column_mapping = {
+                'question': 'Question',
+                'coverage': 'Coverage',
+                'specificity': 'Specificity', 
+                'insight': 'Insight Value',
+                'grounded': 'Grounded Score',
+                'overall_score': 'Overall Score',
+                'relevance_score': 'LLM Relevance',
+                'answerability_score': 'LLM Answerability',
+                'clarity_score': 'LLM Clarity',
+                'context_source': 'Source',
+                'chunk_id': 'Chunk ID'
+            }
+            display_df = display_df.rename(columns=column_mapping)
+            
+            # Display the table
+            st.dataframe(display_df, use_container_width=True, hide_index=True)
+            
+            # Add some statistics below the table
+            st.write("### 📈 Question Generation Statistics")
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric("Total Questions", len(questions_with_metrics))
+            with col2:
+                chunk_pct = (len(chunk_sources) / len(questions_with_metrics)) * 100 if questions_with_metrics else 0
+                st.metric("From Chunks", f"{chunk_pct:.1f}%")
+            with col3:
+                avg_coverage = display_df['coverage'].mean() if 'coverage' in display_df.columns else 0
+                avg_specificity = display_df['specificity'].mean() if 'specificity' in display_df.columns else 0
+                avg_insight = display_df['insight'].mean() if 'insight' in display_df.columns else 0
+                st.metric("Avg Coverage", f"{avg_coverage:.2f}")
+                st.metric("Avg Specificity", f"{avg_specificity:.2f}")
+                st.metric("Avg Insight", f"{avg_insight:.2f}")
+            with col4:
+                if len(chunk_sources) < len(questions_with_metrics):
+                    improvement_pct = ((len(questions_with_metrics) - len(chunk_sources)) / len(questions_with_metrics)) * 100
+                    st.metric("Improvement Needed", f"{improvement_pct:.1f}%")
+                else:
+                    st.metric("Quality Score", "Excellent")
+        
     except ImportError as e:
         st.error(f"Enhanced generator not available: {e}")
         st.info("Please ensure enhanced_question_generator.py is in src directory.")
