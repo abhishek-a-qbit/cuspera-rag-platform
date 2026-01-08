@@ -2075,6 +2075,7 @@ def page_status():
                 GitHub Repository
             </a>
         </p>
+    </div>
     """, unsafe_allow_html=True)
     
     return page
