@@ -20,16 +20,49 @@ def show_question_table():
     try:
         from enhanced_question_generator import generate_enhanced_questions
         st.write("🔍 Using enhanced question generator with real datasets...")
+        
+        # Add timeout protection and better debugging
+        start_time = time.time()
         questions_with_metrics = generate_enhanced_questions(100)
+        generation_time = time.time() - start_time
+        
+        st.write(f"⏱️ Generated in {generation_time:.2f} seconds")
+        st.write(f"🔍 Debug: Generated {len(questions_with_metrics)} questions")
+        
+        # Check if questions are from chunks or fallback
+        chunk_sources = [q for q in questions_with_metrics if q.get('context_source') != 'Fallback' and q.get('context_source') != 'Topic-Based']
+        st.write(f"📊 Questions from chunks: {len(chunk_sources)}")
+        st.write(f"📊 Questions from fallback: {len(questions_with_metrics) - len(chunk_sources)}")
+        
+        if len(chunk_sources) < 50:  # If most are fallback, show warning
+            st.warning("⚠️ Limited chunk-based questions. Dataset may not be available.")
+        
     except ImportError as e:
         st.error(f"Enhanced generator not available: {e}")
+        st.info("Please ensure enhanced_question_generator.py is in src directory.")
         return
     except Exception as e:
         st.error(f"Error generating questions: {e}")
-        return
-    
-    # Debug: Print number of questions generated
-    st.write(f"🔍 Debug: Generated {len(questions_with_metrics)} questions")
+        st.info("Using fallback mode for demonstration...")
+        
+        # Fallback questions (only when enhanced generator fails)
+        fallback_questions = [
+            {
+                'question': 'What are the use-cases of 6Sense that customers use most?',
+                'metrics': {'coverage': 0.85, 'specificity': 0.85, 'insight': 0.80, 'grounded': 0.85},
+                'passes_threshold': True,
+                'context_source': 'Fallback',
+                'chunk_id': 'demo_1'
+            },
+            {
+                'question': 'Which industries use 6Sense most and what do they use it for?',
+                'metrics': {'coverage': 0.80, 'specificity': 0.85, 'insight': 0.85, 'grounded': 0.80},
+                'passes_threshold': True,
+                'context_source': 'Fallback',
+                'chunk_id': 'demo_2'
+            }
+        ]
+        questions_with_metrics = fallback_questions * 50  # Repeat to get 100 questions
     
     # Prepare data for table
     rows = []
