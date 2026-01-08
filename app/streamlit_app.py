@@ -548,7 +548,7 @@ def display_suggested_questions():
             col1, col2 = st.columns([1, 2])
             
             with col1:
-                # Calculate overall score from available metrics
+                # Calculate overall score from available metrics (Fixed KeyError)
                 overall_score = sum(metrics.values()) / len(metrics)
                 overall_color = "#10b981" if overall_score > 0.7 else "#ef4444"
                 st.markdown(f"""
@@ -1903,7 +1903,7 @@ def sidebar():
     # Navigation
     st.sidebar.markdown("### 🧭 Navigation")
     page = st.sidebar.radio(
-        "",
+        "Select Page",  # Fixed: Added proper label
         ["💬 Chat", "📊 Analytics", "📋 Reports", "📑 Question Table", "⚙️ Status"],
         label_visibility="collapsed"
     )
