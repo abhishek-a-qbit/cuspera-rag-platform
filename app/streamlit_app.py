@@ -344,19 +344,20 @@ st.markdown("""
 def check_api_health():
     """Check if API is running."""
     try:
-        resp = requests.get(f"{API_URL}/health", timeout=5)
+        url = f"{API_URL}/health"
+        # For debugging: log the URL being checked
+        print(f"[HEALTH CHECK] Calling: {url}")
+        resp = requests.get(url, timeout=5)
+        print(f"[HEALTH CHECK] Status: {resp.status_code}")
         return resp.status_code == 200
-    except requests.exceptions.RequestException as e:
-        print(f"[HEALTH] Request exception: {e}")
-        return False
-    except requests.exceptions.Timeout as e:
-        print(f"[HEALTH] Timeout: {e}")
+    except requests.exceptions.Timeout:
+        print(f"[HEALTH CHECK] Timeout calling {API_URL}/health")
         return False
     except requests.exceptions.ConnectionError as e:
-        print(f"[HEALTH] Connection error: {e}")
+        print(f"[HEALTH CHECK] Connection error: {e}")
         return False
     except Exception as e:
-        print(f"[HEALTH] Unexpected error: {e}")
+        print(f"[HEALTH CHECK] Error: {type(e).__name__}: {e}")
         return False
 
 def call_api(endpoint: str, method: str = "POST", data: Dict = None, product: str = None) -> Dict[str, Any]:
