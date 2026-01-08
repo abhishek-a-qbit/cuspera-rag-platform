@@ -13,7 +13,15 @@ COLLECTION_NAME = "cuspera_docs"
 TOP_K_RETRIEVAL = 5  # Reduced from 10 to save memory
 
 # Dataset Configuration
-DATABASE_PATH = "../Database"
+# Handle different deployment environments
+if os.path.exists("../Database"):
+    DATABASE_PATH = "../Database"
+elif os.path.exists("Database"):
+    DATABASE_PATH = "Database"
+elif os.path.exists("dataset_1"):
+    DATABASE_PATH = "."  # Use current directory if dataset folders exist
+else:
+    DATABASE_PATH = "../Database"  # Default fallback
 
 # LLM Configuration - Using OpenAI for better reliability
 # OpenAI models are more stable and widely available

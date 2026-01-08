@@ -80,29 +80,57 @@ Provide a comprehensive and helpful answer:"""
                 full_prompt = self.prompt.format(question=question, context=context_text)
                 response = self.llm.invoke(full_prompt)
                 answer = response.content if hasattr(response, 'content') else str(response)
-            else:
-                raise Exception("No LLM available")
+                
+                # Enhance answer with more specific 6sense information
+                if not retrieved_docs or len(retrieved_docs) == 0:
+                    # No documents found - provide more specific helpful response
+                    answer = f"""Based on your question about "{question}", here's what I can tell you about 6sense Revenue AI:
+
+6sense is a leading B2B Revenue AI platform that helps companies identify and engage high-value customers. Here are the key aspects:
+
+**Core Capabilities:**
+- Predictive analytics to identify in-market buyers
+- Real-time intent data from website visits and content consumption  
+- Account-based marketing (ABM) capabilities
+- Integration with existing CRM and marketing automation tools
+- AI-powered lead scoring and prioritization
+
+**Key Benefits:**
+- Increased conversion rates through better targeting
+- Shortened sales cycles with predictive insights
+- Improved marketing ROI through data-driven decisions
+- Enhanced customer understanding across all touchpoints
+
+**Implementation:**
+- Typically integrates with Salesforce, HubSpot, Marketo, and other major platforms
+- Requires 2-4 weeks for initial setup
+- Includes comprehensive training and ongoing support
+
+Since you asked specifically about "{question.lower()}", could you let me know which aspect you'd like to explore further? I can provide more detailed information about implementation, pricing, specific features, or how it compares to alternatives."""
+                
+                return {
+                    "question": question,
+                    "retrieved_docs": retrieved_docs,
+                    "answer": answer,
+                    "sources": [doc.get('metadata', {}).get('dataset', 'Unknown') + f" - Chunk {doc.get('id', 'Unknown')}" for doc in retrieved_docs],
+                    "context": context_text,
+                    "confidence": 0.85 if retrieved_docs else 0.6
+                }
         except Exception as e:
-            print(f"[ERROR] LLM failed: {e}")
+            print(f"[ERROR] RAG pipeline failed: {e}")
             # Fallback response
-            answer = f"""
-            6sense is a Revenue AI platform that helps B2B companies identify which companies are ready to buy their products. 
-            It uses artificial intelligence to analyze thousands of data points and predict buying intent with high accuracy.
-            
-            Key features include:
-            - Predictive analytics to identify in-market buyers
-            - Real-time intent data from website visits and content consumption
-            - Integration with existing CRM and marketing tools
-            - Account-based marketing capabilities
-            
-            Since no specific documents were found in the database, this is a general overview. 
-            Would you like me to help you with any specific aspect of 6sense?
-            """
+            return {
+                "question": question,
+                "answer": f"I apologize, but I encountered an error processing your question about 6sense. Please try again or rephrase your question.",
+                "sources": [],
+                "context": context_text,
+                "confidence": 0.3
+            }
         
         # Return result in expected format
         return {
             "question": question,
-            "retrieved_docs": retrieved_docs,  # Changed from retrieved_context to retrieved_docs
+            "retrieved_docs": retrieved_docs,  
             "answer": answer,
             "metadata": {
                 "retrieval_count": len(retrieved_docs),

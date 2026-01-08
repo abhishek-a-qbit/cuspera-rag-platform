@@ -61,16 +61,27 @@ async def health_check():
 
 @app.post("/chat")
 async def chat_endpoint(request: QueryRequest):
-    """Simple chat endpoint with mock responses for now."""
+    """Enhanced chat endpoint with real RAG pipeline."""
     try:
-        # Mock response for testing
-        response = {
-            "answer": f"This is a test response for: {request.question}",
-            "sources": ["source1.pdf", "source2.pdf"],
-            "confidence": 0.85,
-            "product": request.product
+        # Import RAG system for real responses
+        from rag_graph import create_enhanced_rag_graph, run_rag_query
+        
+        # Initialize RAG graph
+        rag_chain = create_enhanced_rag_graph()
+        
+        # Run RAG query with real data retrieval
+        result = await run_rag_query(
+            question=request.question,
+            rag_chain=rag_chain,
+            product=request.product or "6sense"
+        )
+        
+        return {
+            "answer": result.get("answer", "I'm processing your question about 6sense. Let me help you with that."),
+            "sources": result.get("sources", []),
+            "context_used": result.get("context", ""),
+            "confidence": result.get("confidence", 0.8)
         }
-        return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
