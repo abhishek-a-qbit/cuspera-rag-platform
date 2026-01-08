@@ -206,16 +206,16 @@ class EnhancedQuestionGenerator:
         
         # User-specified query topics for RAG hypothetical question generation
         query_topics = [
-            "What are the use-cases of 6Sense do customers use most?",
-            "What industries uses 6Sense most and what do they use it for?",
-            "Different pricing plans of 6Sense",
-            "RoI of 6Sense",
-            "What are the features of 6Sense that stands out",
-            "6Sense support",
-            "6Sense security",
-            "6Sense scalability issues",
-            "What are the risks using 6Sense based on customer feedback",
-            "What are the features that are part of new releases of 6Sense"
+            "What are the use-cases of 6Sense that customers use most?",
+            "Which industries use 6Sense most and what do they use it for?",
+            "What are the different pricing plans of 6Sense?",
+            "What is the Return on Investment (ROI) of 6Sense?",
+            "What are the features of 6Sense that stand out?",
+            "What kind of support does 6Sense provide?",
+            "What security features does 6Sense have?",
+            "What scalability issues does 6Sense have?",
+            "What are the risks of using 6Sense based on customer feedback?",
+            "What features are part of new releases of 6Sense?"
         ]
         
         attempts = 0
