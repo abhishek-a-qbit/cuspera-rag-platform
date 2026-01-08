@@ -99,38 +99,7 @@ graph TD
 
 ### Hybrid Retrieval System
 
-Our retrieval combines **lexical search** (BM25) with **semantic search** (embeddings):
-
-$$
-\text{Score}_{\text{hybrid}} = \alpha \cdot \text{Score}_{\text{BM25}} + (1 - \alpha) \cdot \text{Score}_{\text{semantic}}
-$$
-
-Where:
-- $\alpha \in [0, 1]$ is the weighting parameter
-- $\text{Score}_{\text{BM25}}$ is the BM25 relevance score
-- $\text{Score}_{\text{semantic}}$ is the cosine similarity score
-
-#### BM25 Scoring
-
-$$
-\text{Score}_{\text{BM25}}(d, q) = \sum_{t \in q} IDF(t) \cdot \frac{f(t, d) \cdot (k_1 + 1)}{f(t, d) + k_1 \cdot (1 - b + b \cdot \frac{|d|}{\text{avgdl}})}
-$$
-
-Where:
-- $f(t, d)$ is the term frequency of term $t$ in document $d$
-- $|d|$ is the document length
-- $\text{avgdl}$ is the average document length
-- $k_1 = 1.2$, $b = 0.75$ are standard BM25 parameters
-
-#### Semantic Scoring
-
-$$
-\text{Score}_{\text{semantic}} = \cos(\theta_q, \theta_d) = \frac{\theta_q \cdot \theta_d}{||\theta_q|| \cdot ||\theta_d||}
-$$
-
-Where:
-- $\theta_q$ is the query embedding vector
-- $\theta_d$ is the document embedding vector
+Our retrieval combines **lexical search** (BM25) with **semantic search** (embeddings) using a weighted scoring approach to optimize relevance for different types of queries.
 
 ---
 
@@ -188,6 +157,90 @@ $$
 
 ---
 
+## 📏 Rule-Based Quality Metrics
+
+### 1. Coverage Score
+
+Measures how well the question covers the key concepts from the context.
+
+$$
+\text{Coverage} = \frac{\text{Key concepts from context mentioned in question}}{\text{Total key concepts in context}}
+$$
+
+**Implementation:**
+```python
+def calculate_coverage(question, context):
+    context_keywords = extract_key_concepts(context)
+    question_keywords = extract_key_concepts(question)
+    overlap = len(set(context_keywords) & set(question_keywords))
+    return overlap / len(context_keywords) if context_keywords else 0
+```
+
+### 2. Specificity Score
+
+Measures how specific and actionable the question is, avoiding generic formulations.
+
+$$
+\text{Specificity} = \frac{\text{Specific terms and metrics in question}}{\text{Total terms in question}} + \text{Actionability\_Bonus}
+$$
+
+Where:
+- **Specific terms** include numbers, percentages, metrics, and domain-specific terminology
+- **Actionability_Bonus** = 0.2 if question contains actionable verbs (how, what, why)
+
+**Implementation:**
+```python
+def calculate_specificity(question):
+    specific_terms = count_specific_terms(question)
+    total_terms = len(question.split())
+    actionability_bonus = 0.2 if contains_actionable_verbs(question) else 0
+    return (specific_terms / total_terms) + actionability_bonus
+```
+
+### 3. Grounded Score
+
+Measures how well the question is grounded in the provided context.
+
+$$
+\text{Grounded} = \frac{\text{Terms from context used in question}}{\text{Total terms in question}} \times \text{Context\_Relevance\_Weight}
+$$
+
+Where **Context_Relevance_Weight** is higher when question directly references context elements.
+
+**Implementation:**
+```python
+def calculate_grounded_score(question, context):
+    context_terms = extract_terms(context)
+    question_terms = extract_terms(question)
+    grounded_terms = len(set(context_terms) & set(question_terms))
+    relevance_weight = calculate_context_relevance(question, context)
+    return (grounded_terms / len(question_terms)) * relevance_weight
+```
+
+### 4. Insight Score
+
+Measures the potential of the question to generate valuable business insights.
+
+$$
+\text{Insight} = \text{Business\_Value\_Score} + \text{Strategic\_Depth\_Score} + \text{Innovation\_Potential\_Score}
+$$
+
+Where:
+- **Business_Value_Score**: Relevance to business outcomes (0-0.4)
+- **Strategic_Depth_Score**: Strategic thinking level (0-0.3)
+- **Innovation_Potential_Score**: Novelty and creativity (0-0.3)
+
+**Implementation:**
+```python
+def calculate_insight_score(question):
+    business_value = assess_business_relevance(question) * 0.4
+    strategic_depth = assess_strategic_thinking(question) * 0.3
+    innovation_potential = assess_innovation(question) * 0.3
+    return business_value + strategic_depth + innovation_potential
+```
+
+---
+
 ## 🧠 LLM Grading System
 
 ### Grading Prompt Template
@@ -240,12 +293,6 @@ Where $\beta = 0.7$ gives 70% weight to RAGAS metrics and 30% to LLM grading.
 ## 🧮 Mathematical Foundations
 
 ### Vector Space Operations
-
-#### Cosine Similarity
-
-$$
-\text{sim}(u, v) = \cos(\theta) = \frac{u \cdot v}{||u|| \cdot ||v||} = \frac{\sum_{i=1}^{n} u_i v_i}{\sqrt{\sum_{i=1}^{n} u_i^2} \sqrt{\sum_{i=1}^{n} v_i^2}}
-$$
 
 #### Euclidean Distance
 
