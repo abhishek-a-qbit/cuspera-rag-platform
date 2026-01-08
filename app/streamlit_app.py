@@ -2108,9 +2108,15 @@ def main():
     # Check API
     health = call_api("/health", method="GET")
     if health and "error" not in health:
-        st.success("✅ API Online")
-        st.success("✅ Railway API responding normally")
-        st.success("✅ Backend deployed and working")
+        # Check if it's Railway default API or our custom API
+        if health.get("service") == "Railway Default API":
+            st.warning("🔧 Railway Default API Detected")
+            st.info("Limited functionality available with Railway default API")
+            st.success("✅ Railway Service Running")
+        else:
+            st.success("✅ API Online")
+            st.success("✅ Custom Backend Responding")
+            st.success("✅ Full RAG Pipeline Active")
         st.json({
             "status": health.get("status"),
             "service": health.get("service"),
