@@ -2087,7 +2087,7 @@ def main():
     page = sidebar()
     
     # Check API
-    if not check_api_health():
+    if check_api_health():
         st.success("✅ API Online")
         st.success("✅ Railway API responding normally")
         st.success("✅ Backend deployed and working")
@@ -2098,7 +2098,9 @@ def main():
             "rag_ready": health.get("rag_ready"),
             "vector_store_ready": health.get("vector_store_ready")
         })
-        return
+    else:
+        st.error("❌ API Not Running")
+        st.info("Start the backend with: `python api_backend_simple.py`")
     
     # Route to pages
     if page == "💬 Chat":
