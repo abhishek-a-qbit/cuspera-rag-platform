@@ -1933,7 +1933,7 @@ def page_status():
             })
         else:
             st.error("❌ API Not Running")
-            st.info("Start the backend with: `python api_backend.py`")
+            st.info("Start the backend with: `python api_backend_simple.py`")
     
     with col2:
         st.markdown("### Database Statistics")
@@ -2101,7 +2101,7 @@ def main():
         st.warning(
             "⚠️ **API is offline**\n\n"
             "The backend API is not running. Please start it with:\n\n"
-            "```\npython api_backend.py\n```\n\n"
+            "```\npython api_backend_simple.py\n```\n\n"
             "Then refresh this page."
         )
         return
