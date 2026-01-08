@@ -548,13 +548,15 @@ def display_suggested_questions():
             col1, col2 = st.columns([1, 2])
             
             with col1:
-                overall_color = "#10b981" if metrics['overall'] > 0 else "#ef4444"
+                # Calculate overall score from available metrics
+                overall_score = sum(metrics.values()) / len(metrics)
+                overall_color = "#10b981" if overall_score > 0.7 else "#ef4444"
                 st.markdown(f"""
                 <div class="metric-card floating-element" style="text-align: center;">
                     <h4 style="margin: 0;">Overall Score</h4>
-                    <p style="margin: 0; font-size: 2rem; font-weight: bold;">{metrics['overall']:.2f}</p>
+                    <p style="margin: 0; font-size: 2rem; font-weight: bold;">{overall_score:.2f}</p>
                     <p style="margin: 0; font-size: 0.9rem;">
-                        {'✅ RECOMMENDED' if metrics['overall'] > 0 else '❌ NOT RECOMMENDED'}
+                        {'✅ RECOMMENDED' if overall_score > 0.7 else '❌ NOT RECOMMENDED'}
                     </p>
                 </div>
                 """, unsafe_allow_html=True)
