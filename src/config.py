@@ -31,4 +31,3 @@ USE_OPENAI_EMBEDDINGS = bool(OPENAI_API_KEY)  # Use OpenAI embeddings if availab
 # RAG Configuration
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 100
-TOP_K_RETRIEVAL = 5
