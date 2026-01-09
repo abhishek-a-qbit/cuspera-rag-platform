@@ -2152,7 +2152,7 @@ def main():
     elif page == "📋 Reports":
         page_reports()
     elif page == "📑 Question Table":
-        from question_table import show_question_table
+        from ques_table import show_question_table
         show_question_table()
     else:
         page_status()
