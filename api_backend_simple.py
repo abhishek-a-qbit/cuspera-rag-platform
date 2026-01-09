@@ -54,6 +54,9 @@ app.add_middleware(
 class ChatRequest(BaseModel):
     question: str
     product: str = "6sense"
+    mode: Optional[str] = None  # answer | question_generation
+    style: Optional[str] = None  # default | loose
+    target_count: Optional[int] = None
 
 class ChatResponse(BaseModel):
     answer: str
@@ -129,7 +132,13 @@ async def chat(request: ChatRequest):
         rag_graph = get_rag_graph()
         
         # Process question using persistent RAG graph
-        result = run_rag_query(rag_graph, request.question)
+        result = run_rag_query(
+            rag_graph,
+            request.question,
+            mode=request.mode,
+            style=request.style,
+            target_count=request.target_count,
+        )
         
         # Format response for API
         return ChatResponse(
@@ -144,12 +153,7 @@ async def chat(request: ChatRequest):
             ],
             context=str(result.get("metadata", {}).get("retrieval_count", 0)),
             confidence=result.get("confidence", 0.6),
-            follow_up_suggestions=[
-                "What are the key features of 6sense?",
-                "How does 6sense help with revenue growth?", 
-                "What industries benefit most from 6sense?",
-                "What is the ROI of 6sense for startups?"
-            ]
+           
         )
     except Exception as e:
         logger.error(f"Chat error: {e}")

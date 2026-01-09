@@ -4,8 +4,8 @@ import os
 # load_dotenv()  # Commented out to avoid Unicode issues
 
 # API Configuration - Direct values to avoid dotenv issues
-GOOGLE_API_KEY = None  # os.getenv("GOOGLE_API_KEY")
-OPENAI_API_KEY = None  # os.getenv("OPENAI_API_KEY")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # Vector Store Configuration
 CHROMA_DB_PATH = "./chroma_db"
@@ -23,9 +23,9 @@ elif os.path.exists("dataset_1"):
 else:
     DATABASE_PATH = "../Database"  # Default fallback
 
-# LLM Configuration - Using fallback since no API keys
-USE_OPENAI = False  # bool(OPENAI_API_KEY)  # Auto-switch to OpenAI if key is available
-USE_OPENAI_EMBEDDINGS = False  # bool(OPENAI_API_KEY)  # Use OpenAI embeddings if available
+# LLM Configuration
+USE_OPENAI = bool(OPENAI_API_KEY)
+USE_OPENAI_EMBEDDINGS = bool(OPENAI_API_KEY)
 
 # RAG Configuration
 CHUNK_SIZE = 1000

@@ -1,4 +1,4 @@
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
@@ -61,6 +61,9 @@ Provide a comprehensive and helpful answer:"""
     def invoke(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """Run the RAG pipeline."""
         question = state.get("question", "")
+        mode = state.get("mode", "answer")  # answer | question_generation
+        style = state.get("style", "default")  # default | loose
+        target_count = int(state.get("target_count", 10) or 10)
         
         # Step 1: Retrieve relevant documents
         retrieved_docs = self.vector_store.retrieve(question, top_k=TOP_K_RETRIEVAL)
@@ -78,79 +81,61 @@ Provide a comprehensive and helpful answer:"""
         answer = ""
         try:
             if self.llm:
-                # Create a comprehensive prompt for proper answer generation
-                full_prompt = f"""You are a B2B software expert specializing in ROI analysis and software recommendations. Based on the provided context, generate a comprehensive, insightful answer to the user's question.
+                if mode == "question_generation":
+                    # Produce structured questions for the frontend (Streamlit) to consume.
+                    # IMPORTANT: callers should still validate JSON; models can be imperfect.
+                    q_prompt = f"""You are generating customer questions about B2B software.
+
+Use the context below ONLY as a knowledge base. Do not invent facts.
 
 CONTEXT:
 {context_text}
 
-USER QUESTION: {question}
+TASK:
+Generate EXACTLY {target_count} unique, grammatically correct questions. Each question must end with a '?'.
 
-INSTRUCTIONS:
-1. Provide a direct, comprehensive answer based on the context
-2. Include specific ROI data, metrics, and examples from the sources
-3. Structure your answer with clear sections and bullet points
-4. Focus on business value and practical insights
-5. If the context contains ROI data, extract and highlight it
-6. Be conversational but professional
+OUTPUT FORMAT (STRICT):
+Return ONLY valid JSON. Either:
+1) A JSON array of strings
+OR
+2) {{"questions": ["...", "..."]}}
 
-ANSWER:"""
-                
-                response = self.llm.invoke(full_prompt)
-                answer = response.content if hasattr(response, 'content') else str(response)
-                
-                # Enhance answer if no documents found
-                if not retrieved_docs or len(retrieved_docs) == 0:
-                    answer = f"""Based on your question about "{question}", here's what I can tell you about 6sense Revenue AI:
+PROMPT/FOCUS:
+{question}
+"""
+                    response = self.llm.invoke(q_prompt)
+                    answer = response.content if hasattr(response, 'content') else str(response)
+                else:
+                    # Draft answer (grounded)
+                    draft_prompt = f"""You are a helpful B2B software assistant.
 
-6sense is a leading B2B Revenue AI platform that helps companies identify and engage high-value customers. Here are the key aspects:
+Use ONLY the context below. If the context is insufficient, say what is missing.
 
-**Core Capabilities:**
-- Predictive analytics to identify in-market buyers
-- Real-time intent data from website visits and content consumption  
-- Account-based marketing (ABM) capabilities
-- Integration with existing CRM and marketing automation tools
-- AI-powered lead scoring and prioritization
-
-**Key Benefits:**
-- Increased conversion rates through better targeting
-- Shortened sales cycles with predictive insights
-- Improved marketing ROI through data-driven decisions
-- Enhanced customer understanding across all touchpoints
-
-**Implementation:**
-- Typically integrates with Salesforce, HubSpot, Marketo, and other major platforms
-- Requires 2-4 weeks for initial setup
-- Includes comprehensive training and ongoing support
-
-Since you asked specifically about "{question.lower()}", could you let me know which aspect you'd like to explore further? I can provide more detailed information about implementation, pricing, specific features, or how it compares to alternatives."""
-            else:
-                # Fallback when no LLM is available - provide structured analysis
-                answer = f"""Based on the available information about your question "{question}", here's what I found:
-
-**Key Insights from Database:**
+CONTEXT:
 {context_text}
 
-**Analysis:**
-This information comes from the 6sense database and covers various aspects of the platform including features, benefits, and customer experiences. The data suggests strong ROI potential with documented success cases.
+QUESTION:
+{question}
 
-**Recommendation:**
-For specific ROI calculations and implementation guidance, I recommend contacting 6sense directly for a personalized consultation based on your company's specific needs and scale."""
-        except Exception as e:
-            print(f"[ERROR] RAG pipeline failed: {e}")
-            # Fallback response
-            answer = f"I apologize, but I encountered an error processing your question about 6sense. Please try again or rephrase your question."
-        
-        # Return result in expected format
-        return {
-            "question": question,
-            "retrieved_docs": retrieved_docs,  
-            "answer": answer,
-            "metadata": {
-                "retrieval_count": len(retrieved_docs),
-                "documents_used": len(retrieved_docs)
-            }
-        }
+Write a clear, helpful answer."""
+
+                    response = self.llm.invoke(draft_prompt)
+                    draft = response.content if hasattr(response, 'content') else str(response)
+
+                    if style == "loose":
+                        # Rewrite step: make it less rigid, more conversational, while staying grounded.
+                        rewrite_prompt = f"""Rewrite the answer below to be more conversational, slightly more expansive, and easier to read.
+
+
+
+ANSWER TO REWRITE:
+{draft}
+"""
+                        response2 = self.llm.invoke(rewrite_prompt)
+                        answer = response2.content if hasattr(response2, 'content') else str(response2)
+                    else:
+                        answer = draft
+                
 
 
 def create_rag_graph(vector_store: VectorStore):
@@ -183,10 +168,19 @@ def create_persistent_rag_graph(use_persistent: bool = True, force_reprocess: bo
     return RAGGraph(vector_store)
 
 
-def run_rag_query(graph, question: str) -> Dict[str, Any]:
+def run_rag_query(
+    graph,
+    question: str,
+    mode: str = "answer",
+    style: str = "default",
+    target_count: Optional[int] = None,
+) -> Dict[str, Any]:
     """Run a query through the RAG pipeline."""
     state = {
         "question": question,
+        "mode": mode or "answer",
+        "style": style or "default",
+        "target_count": target_count,
         "retrieved_docs": [],  # Changed to retrieved_docs
         "answer": "",
         "metadata": {}
