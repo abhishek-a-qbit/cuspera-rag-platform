@@ -223,6 +223,37 @@ async def products():
         logger.error(f"Products error: {e}")
         return ProductsResponse(products=[{"error": str(e)}])
 
+@app.post("/generate-questions", response_model=Dict[str, Any], tags=["Questions"])
+async def generate_questions(request: Dict[str, Any]):
+    """Generate questions using RAG graph from actual data."""
+    try:
+        # Import data-driven question generator
+        from data_driven_question_generator import generate_data_driven_questions
+        
+        # Extract parameters
+        topic = request.get("topic", None)
+        num_questions = request.get("num_questions", 10)
+        
+        # Generate questions using RAG graph
+        questions = generate_data_driven_questions(topic, num_questions)
+        
+        return {
+            "status": "success",
+            "questions": questions,
+            "topic": topic,
+            "num_generated": len(questions),
+            "generation_method": "RAG Graph Invoke",
+            "data_source": "Self-Contained RAG System"
+        }
+    except Exception as e:
+        logger.error(f"Question generation error: {e}")
+        return {
+            "status": "error",
+            "error": str(e),
+            "questions": [],
+            "generation_method": "Fallback"
+        }
+
 # ==================== START SERVER ====================
 
 if __name__ == "__main__":
