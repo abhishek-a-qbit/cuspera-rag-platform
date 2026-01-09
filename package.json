@@ -7,7 +7,7 @@
     "start": "python api_backend_simple.py"
   },
   "dependencies": {
-    
+    },  
   "engines": {
     "python": ">=3.8"
   }
