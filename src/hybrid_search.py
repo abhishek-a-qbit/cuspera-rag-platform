@@ -3,7 +3,7 @@ Hybrid Search Module - Combines Semantic + Keyword Search
 Uses BM25 for keyword matching and embeddings for semantic search
 """
 
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 import json
 import numpy as np
 from pathlib import Path
@@ -44,7 +44,7 @@ class HybridSearcher:
         self.bm25_index = None
         self.documents = []
     
-    def initialize(self, db_path: str = "./chroma_db", collection_name: str | None = None, documents: List[Dict[str, Any]] = None):
+    def initialize(self, db_path: str = "./chroma_db", collection_name: Optional[str] = None, documents: List[Dict[str, Any]] = None):
         """Initialize vector store and keyword index."""
         # Initialize embeddings if available and API key provided
         google_key = os.getenv("GOOGLE_API_KEY")
