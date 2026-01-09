@@ -1,1 +1,1 @@
-web: python -u api_backend_simple.py
+web: python -u test_zero_deps.py
