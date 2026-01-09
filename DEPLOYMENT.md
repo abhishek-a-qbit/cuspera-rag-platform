@@ -17,8 +17,8 @@
 
 4. **Deploy Settings**:
    - Build Command: `pip install -r requirements.txt`
-   - Start Command: `uvicorn src.api_backend:app --host 0.0.0.0 --port 8000`
-   - Health Check: `/health`
+    - Start Command: `python -u api_backend_simple.py`   - Health Check: `/health`
+    - 
 
 ### Get Railway API URL
 After deployment, Railway will provide a URL like:
@@ -82,3 +82,28 @@ curl https://your-app.railway.app/health
 # Check Streamlit logs
 # View in Streamlit Cloud dashboard
 ```
+
+
+## Optional: Deploy Both Services on Railway
+
+Alternatively, you can deploy BOTH the API backend AND Streamlit frontend on a single Railway project using multiple services:
+
+### Service 1: API Backend
+- **Service Name**: `api` or `api-backend`
+- **Start Command**: `python -u api_backend_simple.py`
+- **Port**: 8000
+- **Environment Variables**: `GOOGLE_API_KEY`, `DATABASE_PATH`
+
+### Service 2: Streamlit Frontend
+- **Service Name**: `web` or `frontend`
+- **Start Command**: `streamlit run app/streamlit_app.py`
+- **Port**: 8501
+- **Environment Variables**: `API_URL=http://api:8000` (uses internal Railway networking)
+
+### Configuration Files
+- **Procfile**: Used for the default/main service (API backend)
+- **railway.json**: Provides explicit build and deploy configuration for better Railway integration
+
+Both services will be accessible:
+- API: `https://<railway-app-url>:<port>`
+- Streamlit: `https://<railway-app-url>:8501` or separate Streamlit domain
