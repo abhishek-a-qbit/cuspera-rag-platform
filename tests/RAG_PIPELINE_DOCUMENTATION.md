@@ -294,6 +294,12 @@ Where $\beta = 0.7$ gives 70% weight to RAGAS metrics and 30% to LLM grading.
 
 ### Vector Space Operations
 
+#### Cosine Similarity
+
+$$
+\text{sim}(u, v) = \cos(\theta) = \frac{u \cdot v}{||u|| \cdot ||v||} = \frac{\sum_{i=1}^{n} u_i v_i}{\sqrt{\sum_{i=1}^{n} u_i^2} \sqrt{\sum_{i=1}^{n} v_i^2}}
+$$
+
 #### Euclidean Distance
 
 $$

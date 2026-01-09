@@ -1,19 +1,12 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
-    "builder": "NIXPACKS"
+    "builder": "DOCKERFILE"
   },
   "deploy": {
     "numReplicas": 1,
-    "startCommand": "python -u test_zero_deps.py",
+    "startCommand": "python -u api_backend_simple.py",
     "restartPolicyMaxRetries": 5,
-    "healthchecks": {
-      "readiness": {
-        "path": "/health",
-        "initialDelaySeconds": 30,
-        "periodSeconds": 10,
-        "timeoutSeconds": 5
-      }
-    }
+    "healthcheckPath": "/health"
   }
 }
