@@ -2,6 +2,7 @@ from typing import Dict, List, Any, Optional
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 import sys
 import os
 
@@ -83,60 +84,83 @@ Provide a comprehensive and helpful answer:"""
             if self.llm:
                 if mode == "question_generation":
                     # Produce structured questions for the frontend (Streamlit) to consume.
-                    # IMPORTANT: callers should still validate JSON; models can be imperfect.
-                    q_prompt = f"""You are generating customer questions about B2B software.
-
-Use the context below ONLY as a knowledge base. Do not invent facts.
-
-CONTEXT:
-{context_text}
-
-TASK:
-Generate EXACTLY {target_count} unique, grammatically correct questions. Each question must end with a '?'.
-
-OUTPUT FORMAT (STRICT):
-Return ONLY valid JSON. Either:
-1) A JSON array of strings
-OR
-2) {{"questions": ["...", "..."]}}
-
-PROMPT/FOCUS:
-{question}
-"""
-                    response = self.llm.invoke(q_prompt)
-                    answer = response.content if hasattr(response, 'content') else str(response)
+                    prompt = ChatPromptTemplate.from_messages([
+                        (
+                            "system",
+                            "You generate customer questions about B2B software using ONLY the provided context. "
+                            "Do not invent facts."
+                        ),
+                        (
+                            "human",
+                            "CONTEXT:\n{context}\n\n"
+                            "TASK: Generate EXACTLY {target_count} unique, grammatically correct questions. "
+                            "Each question must end with a '?'.\n\n"
+                            "OUTPUT FORMAT (STRICT): Return ONLY valid JSON, either a JSON array of strings OR "
+                            "an object: {\"questions\": [\"...\"]}.\n\n"
+                            "FOCUS: {focus}"
+                        ),
+                    ])
+                    messages = prompt.format_messages(
+                        context=context_text,
+                        target_count=target_count,
+                        focus=question,
+                    )
+                    response = self.llm.invoke(messages)
+                    answer = response.content if hasattr(response, "content") else str(response)
                 else:
                     # Draft answer (grounded)
-                    draft_prompt = f"""You are a helpful B2B software assistant.
-
-Use ONLY the context below. If the context is insufficient, say what is missing.
-
-CONTEXT:
-{context_text}
-
-QUESTION:
-{question}
-
-Write a clear, helpful answer."""
-
-                    response = self.llm.invoke(draft_prompt)
-                    draft = response.content if hasattr(response, 'content') else str(response)
+                    draft_prompt = ChatPromptTemplate.from_messages([
+                        (
+                            "system",
+                            "You are a helpful B2B software assistant. Use the provided context. "
+                            "If the context is insufficient, say what is missing."
+                        ),
+                        ("human", "CONTEXT:\n{context}\n\nQUESTION:\n{question}\n\nWrite a clear, helpful answer."),
+                    ])
+                    draft_messages = draft_prompt.format_messages(context=context_text, question=question)
+                    response = self.llm.invoke(draft_messages)
+                    draft = response.content if hasattr(response, "content") else str(response)
 
                     if style == "loose":
                         # Rewrite step: make it less rigid, more conversational, while staying grounded.
-                        rewrite_prompt = f"""Rewrite the answer below to be more conversational, slightly more expansive, and easier to read.
-
-
-
-ANSWER TO REWRITE:
-{draft}
-"""
-                        response2 = self.llm.invoke(rewrite_prompt)
-                        answer = response2.content if hasattr(response2, 'content') else str(response2)
+                        rewrite_prompt = ChatPromptTemplate.from_messages([
+                            (
+                                "system",
+                                "Rewrite the user's answer to be more conversational and easier to read. "
+                                "Do NOT add new facts. You may restructure with short paragraphs and bullet points."
+                            ),
+                            ("human", "ANSWER TO REWRITE:\n{draft}"),
+                        ])
+                        rewrite_messages = rewrite_prompt.format_messages(draft=draft)
+                        response2 = self.llm.invoke(rewrite_messages)
+                        answer = response2.content if hasattr(response2, "content") else str(response2)
                     else:
                         answer = draft
-                
+            else:
+                # No LLM configured: keep behavior predictable for the frontend.
+                if mode == "question_generation":
+                    answer = json.dumps({"questions": []})
+                else:
+                    answer = (
+                        f"No LLM configured, so I can only show retrieved context.\n\n"
+                        f"CONTEXT:\n{context_text}"
+                    )
+        except Exception as e:
+            print(f"[ERROR] RAG pipeline failed: {e}")
+            if mode == "question_generation":
+                answer = json.dumps({"questions": []})
+            else:
+                answer = "I encountered an error while generating a response. Please try again."
 
+        return {
+            "question": question,
+            "retrieved_docs": retrieved_docs,
+            "answer": answer,
+            "metadata": {
+                "retrieval_count": len(retrieved_docs),
+                "documents_used": len(retrieved_docs),
+            },
+        }
 
 def create_rag_graph(vector_store: VectorStore):
     """Create a RAG pipeline instance."""
