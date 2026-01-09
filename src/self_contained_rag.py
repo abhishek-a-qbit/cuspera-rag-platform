@@ -18,31 +18,98 @@ logger = logging.getLogger(__name__)
 class SelfContainedRAG:
     """Complete RAG system with all components and metrics."""
     
-    def __init__(self, data_path: str = "./data"):
+    def __init__(self, data_path: str = "./Database"):
         """Initialize self-contained RAG system."""
         self.data_path = Path(data_path)
         self.documents = []
         self.chunks = []
-        self.embeddings_cache = {}
+        self.embeddings_cache = {}  # Clear cache on init
         self.vector_index = {}
         
         logger.info("Self-contained RAG system initialized")
         
-        # Load or create data
+        # Force reload data
         self._load_or_create_data()
+        
+        # Process documents into chunks
+        if self.documents:
+            self._process_documents()
     
     def _load_or_create_data(self):
         """Load existing data or create sample data."""
-        data_file = self.data_path / "documents.json"
+        # Try to load actual 6sense database first
+        dataset1_path = self.data_path / "dataset_1"
+        dataset2_path = self.data_path / "dataset_2"
         
-        if data_file.exists():
-            logger.info(f"Loading existing data from {data_file}")
-            with open(data_file, 'r', encoding='utf-8') as f:
-                self.documents = json.load(f)
-        else:
-            logger.info(f"Creating sample data at {data_file}")
+        self.documents = []
+        
+        # Load dataset 1 files
+        if dataset1_path.exists():
+            logger.info(f"Loading dataset 1 from {dataset1_path}")
+            for file_path in dataset1_path.glob("*.json"):
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        if 'data' in data:
+                            for item in data['data']:
+                                if 'description' in item:
+                                    self.documents.append({
+                                        "content": item['description'],
+                                        "metadata": {
+                                            "source": f"dataset_1/{file_path.name}",
+                                            "category": item.get('type', 'unknown'),
+                                            "id": item.get('id', 'unknown')
+                                        }
+                                    })
+                                elif 'label' in item:
+                                    self.documents.append({
+                                        "content": item['label'],
+                                        "metadata": {
+                                            "source": f"dataset_1/{file_path.name}",
+                                            "category": item.get('type', 'unknown'),
+                                            "id": item.get('id', 'unknown')
+                                        }
+                                    })
+                except Exception as e:
+                    logger.warning(f"Error loading {file_path}: {e}")
+        
+        # Load dataset 2 files
+        if dataset2_path.exists():
+            logger.info(f"Loading dataset 2 from {dataset2_path}")
+            for file_path in dataset2_path.glob("*.json"):
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        if 'data' in data:
+                            for item in data['data']:
+                                if 'description' in item:
+                                    self.documents.append({
+                                        "content": item['description'],
+                                        "metadata": {
+                                            "source": f"dataset_2/{file_path.name}",
+                                            "category": item.get('type', 'unknown'),
+                                            "id": item.get('id', 'unknown')
+                                        }
+                                    })
+                                elif 'label' in item:
+                                    self.documents.append({
+                                        "content": item['label'],
+                                        "metadata": {
+                                            "source": f"dataset_2/{file_path.name}",
+                                            "category": item.get('type', 'unknown'),
+                                            "id": item.get('id', 'unknown')
+                                        }
+                                    })
+                except Exception as e:
+                    logger.warning(f"Error loading {file_path}: {e}")
+        
+        # If no real data loaded, create sample data
+        if not self.documents:
+            logger.warning("No real data found, creating sample data")
             self._create_sample_data()
             self._save_data()
+        else:
+            logger.info(f"Loaded {len(self.documents)} documents from database")
     
     def _create_sample_data(self):
         """Create sample documents for demonstration."""

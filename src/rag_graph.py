@@ -75,15 +75,32 @@ Provide a comprehensive and helpful answer:"""
             context_text = "No relevant documents found."
         
         # Step 3: Generate answer using LLM
+        answer = ""
         try:
             if self.llm:
-                full_prompt = self.prompt.format(question=question, context=context_text)
+                # Create a comprehensive prompt for proper answer generation
+                full_prompt = f"""You are a B2B software expert specializing in ROI analysis and software recommendations. Based on the provided context, generate a comprehensive, insightful answer to the user's question.
+
+CONTEXT:
+{context_text}
+
+USER QUESTION: {question}
+
+INSTRUCTIONS:
+1. Provide a direct, comprehensive answer based on the context
+2. Include specific ROI data, metrics, and examples from the sources
+3. Structure your answer with clear sections and bullet points
+4. Focus on business value and practical insights
+5. If the context contains ROI data, extract and highlight it
+6. Be conversational but professional
+
+ANSWER:"""
+                
                 response = self.llm.invoke(full_prompt)
                 answer = response.content if hasattr(response, 'content') else str(response)
                 
-                # Enhance answer with more specific 6sense information
+                # Enhance answer if no documents found
                 if not retrieved_docs or len(retrieved_docs) == 0:
-                    # No documents found - provide more specific helpful response
                     answer = f"""Based on your question about "{question}", here's what I can tell you about 6sense Revenue AI:
 
 6sense is a leading B2B Revenue AI platform that helps companies identify and engage high-value customers. Here are the key aspects:
@@ -107,25 +124,22 @@ Provide a comprehensive and helpful answer:"""
 - Includes comprehensive training and ongoing support
 
 Since you asked specifically about "{question.lower()}", could you let me know which aspect you'd like to explore further? I can provide more detailed information about implementation, pricing, specific features, or how it compares to alternatives."""
-                
-                return {
-                    "question": question,
-                    "retrieved_docs": retrieved_docs,
-                    "answer": answer,
-                    "sources": [doc.get('metadata', {}).get('dataset', 'Unknown') + f" - Chunk {doc.get('id', 'Unknown')}" for doc in retrieved_docs],
-                    "context": context_text,
-                    "confidence": 0.85 if retrieved_docs else 0.6
-                }
+            else:
+                # Fallback when no LLM is available - provide structured analysis
+                answer = f"""Based on the available information about your question "{question}", here's what I found:
+
+**Key Insights from Database:**
+{context_text}
+
+**Analysis:**
+This information comes from the 6sense database and covers various aspects of the platform including features, benefits, and customer experiences. The data suggests strong ROI potential with documented success cases.
+
+**Recommendation:**
+For specific ROI calculations and implementation guidance, I recommend contacting 6sense directly for a personalized consultation based on your company's specific needs and scale."""
         except Exception as e:
             print(f"[ERROR] RAG pipeline failed: {e}")
             # Fallback response
-            return {
-                "question": question,
-                "answer": f"I apologize, but I encountered an error processing your question about 6sense. Please try again or rephrase your question.",
-                "sources": [],
-                "context": context_text,
-                "confidence": 0.3
-            }
+            answer = f"I apologize, but I encountered an error processing your question about 6sense. Please try again or rephrase your question."
         
         # Return result in expected format
         return {

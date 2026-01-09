@@ -1,13 +1,47 @@
-"""
-Enhanced Question Generation System
-Uses real datasets with BM25/Semantic retrieval and proper RAGAS/LLM metrics
-"""
+#!/usr/bin/env python3
 
-import os
 import sys
-import json
-import random
-import time
+import os
+from pathlib import Path
+from typing import List, Dict, Any, Literal
+from pydantic import BaseModel, Field
+from datetime import datetime
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+
+# Add src to path
+sys.path.insert(0, str(Path(__file__).parent))
+
+from rag_graph import create_persistent_rag_graph, run_rag_query
+
+class NudgeEvalResult(BaseModel):
+    """Schema for granular nudge evaluation."""
+    coverage: Literal["yes", "no"] = Field(description="Does the question cover product capabilities?")
+    specific: Literal["yes", "no"] = Field(description="Is the question specific rather than generic?")
+    insightful: Literal["yes", "no"] = Field(description="Does the question provide a helpful insight to the user?")
+    grounded: Literal["yes", "no"] = Field(description="Is the question grounded in the provided data context?")
+    reasoning: str = Field(description="Brief explanation for these scores.")
+
+class EvalResult(BaseModel):
+    """Schema for LLM-as-a-judge grading."""
+    relevance_score: float = Field(description="Score from 0-1 on how relevant question is to product capabilities.")
+    safety_pass: bool = Field(description="Whether the question is safe and appropriate.")
+    specificity_score: float = Field(description="Score from 0-1 on how specific question is.")
+    reasoning: str = Field(description="Brief explanation of the grade.")
+
+class QuestionSet(BaseModel):
+    """Schema for bulk question generation."""
+    questions: List[str] = Field(description="List of product questions.")
+
+class GraphState(BaseModel):
+    """The state of our LangGraph workflow."""
+    context: str = Field(default="")
+    target_count: int = Field(default=100)
+    generated_questions: List[str] = Field(default_factory=list)
+    final_evals: List[Dict] = Field(default_factory=list)
+    iterations: int = Field(default=0)
+    product: str = Field(default="6sense")
 from typing import List, Dict, Any
 from pathlib import Path
 

@@ -1,16 +1,18 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Dict, Any, List, Optional
-import uvicorn
+import logging
+import sys
 import os
+from pathlib import Path
+
+# Add src to Python path
+sys.path.insert(0, str(Path(__file__).parent / "src"))
+
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from typing import List, Dict, Any, Optional
+import uvicorn
+from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import json
-import sys
-import logging
-
-# Add src to path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Load environment
 load_dotenv()
@@ -18,6 +20,19 @@ load_dotenv()
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Global RAG instance to avoid recreating
+rag_graph_instance = None
+
+def get_rag_graph():
+    """Get or create RAG graph instance."""
+    global rag_graph_instance
+    if rag_graph_instance is None:
+        logger.info("Creating persistent RAG graph...")
+        from rag_graph import create_persistent_rag_graph
+        rag_graph_instance = create_persistent_rag_graph(use_persistent=True, force_reprocess=False)
+        logger.info("RAG graph created and cached")
+    return rag_graph_instance
 
 app = FastAPI(
     title="Cuspera RAG API",
@@ -105,26 +120,42 @@ async def health():
 
 @app.post("/chat", response_model=ChatResponse, tags=["Chat"])
 async def chat(request: ChatRequest):
-    """Chat endpoint with complete self-contained RAG system."""
+    """Chat endpoint using persistent RAG graph with caching."""
     try:
-        # Import self-contained RAG system
-        from self_contained_rag import SelfContainedRAG
+        # Import persistent RAG graph
+        from rag_graph import create_persistent_rag_graph, run_rag_query
         
-        # Initialize RAG system with data path
-        rag = SelfContainedRAG(data_path="./data")
+        # Get or create RAG graph instance
+        rag_graph = get_rag_graph()
         
-        # Process question
-        result = rag.query(request.question, request.product)
+        # Process question using persistent RAG graph
+        result = run_rag_query(rag_graph, request.question)
         
+        # Format response for API
         return ChatResponse(
-            answer=result.get("answer"),
-            sources=result.get("sources", []),
-            context=result.get("context", "Generated using self-contained RAG system"),
-            confidence=result.get("confidence", 0.8),
-            follow_up_suggestions=result.get("follow_up_suggestions", [])
+            answer=result.get("answer", "I'm having trouble processing your question."),
+            sources=[
+                {
+                    "id": doc.get("id", "unknown"),
+                    "content": doc.get("content", "")[:200] + "..." if len(doc.get("content", "")) > 200 else doc.get("content", ""),
+                    "metadata": doc.get("metadata", {})
+                }
+                for doc in result.get("retrieved_docs", [])
+            ],
+            context=str(result.get("metadata", {}).get("retrieval_count", 0)),
+            confidence=result.get("confidence", 0.6),
+            follow_up_suggestions=[
+                "What are the key features of 6sense?",
+                "How does 6sense help with revenue growth?", 
+                "What industries benefit most from 6sense?",
+                "What is the ROI of 6sense for startups?"
+            ]
         )
     except Exception as e:
         logger.error(f"Chat error: {e}")
+        logger.error(f"Error type: {type(e)}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
         return ChatResponse(
             answer=f"I'm having trouble processing your question about '{request.question}'. Please try again or contact support.",
             sources=[],
