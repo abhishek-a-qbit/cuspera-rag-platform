@@ -1350,149 +1350,50 @@ elif st.session_state.current_page == "Questions":
         if st.button("🚀 Generate Questions with RAGAS Metrics", type="primary", use_container_width=True):
             with st.spinner("🔄 Generating questions with RAGAS evaluation..."):
                 try:
-                    # Build a RAG prompt that asks for questions
+                    # 1) Generate questions + metrics via backend generator
+                    gen_payload = {
+                        "topic": target_product,
+                        "num_questions": target_count,
+                    }
                     if custom_prompt.strip():
-                        rag_query = (
-                            f"Generate {target_count} specific, non-duplicative questions about {target_product}. "
-                            f"{custom_prompt}\n\n"
-                            "Return ONLY the questions, one per line, each ending with a '?'."
-                        )
-                    else:
-                        rag_query = (
-                            f"Generate {target_count} specific, non-duplicative questions about {target_product} covering: "
-                            "features, pricing, implementation timeline, ROI, integrations, security/compliance, "
-                            "use cases, and differentiation.\n\n"
-                            "Return ONLY the questions, one per line, each ending with a '?'."
-                        )
+                        gen_payload["custom_prompt"] = custom_prompt
 
-                    # 1) Ask RAG to generate questions
-                    resp = requests.post(
-                        f"{API_URL}/chat",
-                        json={"question": rag_query, "mode": "question_generation", "target_count": target_count},
-                        timeout=30
+                    gen_resp = requests.post(
+                        f"{API_URL}/generate-questions",
+                        json=gen_payload,
+                        timeout=60,
                     )
-                    generated_text = ""
-                    if resp.status_code == 200:
-                        generated_text = (resp.json() or {}).get("answer", "")
 
-                    raw_generation = generated_text
+                    gen_json = gen_resp.json() if gen_resp is not None else {}
+                    if (gen_resp is None) or gen_resp.status_code != 200 or (gen_json or {}).get("status") != "success":
+                        raise ValueError(f"Question generator API error: {(gen_json or {}).get('error') or gen_resp.status_code}")
+
+                    generated_questions = (gen_json or {}).get("questions") or []
+                    metrics_summary = (gen_json or {}).get("metrics") or {}
+                    raw_generation = json.dumps(gen_json, indent=2)
 
                     extracted_questions = []
-                    if generated_text:
-                        # (a) Line-based extraction
-                        for raw in generated_text.split("\n"):
-                            q = raw.strip().lstrip("-•* ").strip()
-                            q = q.lstrip("0123456789.):- ")
-                            q = q.strip()
-                            if q.endswith("?") and len(q) > 10:
-                                extracted_questions.append({"question": q, "source": "RAG"})
+                    for item in generated_questions:
+                        qtext = (item or {}).get("question")
+                        if not qtext:
+                            continue
+                        context_source = (item or {}).get("context_source") or ""
+                        src = "Fallback" if "fallback" in context_source.lower() else "RAG"
+                        extracted_questions.append({
+                            "question": qtext,
+                            "source": src,
+                            "metrics": (item or {}).get("metrics") or {},
+                        })
 
-                        # (b) Regex extraction for paragraph-style outputs
-                        try:
-                            import re
-
-                            for match in re.findall(r"[^\?\n]{10,}\?", generated_text):
-                                q = match.strip().lstrip("-•* ")
-                                q = q.lstrip("0123456789.):- ")
-                                q = q.strip()
-                                if q.endswith("?") and len(q) > 10:
-                                    extracted_questions.append({"question": q, "source": "RAG"})
-                        except Exception:
-                            pass
-
-                        # Dedupe while preserving order
-                        seen_q = set()
-                        deduped = []
-                        for item in extracted_questions:
-                            key = item["question"].strip().lower()
-                            if key in seen_q:
-                                continue
-                            seen_q.add(key)
-                            deduped.append(item)
-                        extracted_questions = deduped
-
-                    # 1b) Retry with strict JSON if free-form extraction failed
-                    if len(extracted_questions) < target_count:
-                        rag_query_json = (
-                            f"Return EXACTLY {target_count} questions about {target_product} as JSON ONLY. "
-                            "Output must be either a JSON array of strings OR an object: {\"questions\": [..]}. "
-                            "No markdown, no explanation. Each question must end with a '?'."
-                        )
-                        resp2 = requests.post(
-                            f"{API_URL}/chat",
-                            json={"question": rag_query_json, "mode": "question_generation", "target_count": target_count},
-                            timeout=30
-                        )
-                        if resp2.status_code == 200:
-                            raw2 = (resp2.json() or {}).get("answer", "")
-                            raw_generation = raw2 or raw_generation
-
-                            payload = None
-                            try:
-                                start = raw2.find("[")
-                                end = raw2.rfind("]")
-                                if start != -1 and end != -1 and end > start:
-                                    payload = json.loads(raw2[start : end + 1])
-                            except Exception:
-                                payload = None
-
-                            if payload is None:
-                                try:
-                                    start = raw2.find("{")
-                                    end = raw2.rfind("}")
-                                    if start != -1 and end != -1 and end > start:
-                                        payload = json.loads(raw2[start : end + 1])
-                                except Exception:
-                                    payload = None
-
-                            parsed_questions = []
-                            if isinstance(payload, list):
-                                parsed_questions = [str(x).strip() for x in payload]
-                            elif isinstance(payload, dict) and isinstance(payload.get("questions"), list):
-                                parsed_questions = [str(x).strip() for x in payload.get("questions", [])]
-
-                            extracted_questions = []
-                            for pq in parsed_questions:
-                                if pq.endswith("?") and len(pq) > 10:
-                                    extracted_questions.append({"question": pq, "source": "RAG"})
-
-                    # 2) Fill to target_count using fallback questions (stable schema)
-                    fallback_questions = [
-                        f"What are the key features of {target_product}?",
-                        f"How does {target_product} pricing work?",
-                        f"What is the typical ROI for {target_product}?",
-                        f"How long does {target_product} implementation take?",
-                        f"What industries benefit most from {target_product}?",
-                        f"What are the main benefits of {target_product}?",
-                        f"How does {target_product} compare to alternatives?",
-                        f"What technical requirements does {target_product} have?",
-                        f"What kind of support does {target_product} provide?",
-                        f"Is {target_product} suitable for small businesses?",
-                    ]
-                    if not rag_only_questions:
-                        seen = set(q["question"].lower() for q in extracted_questions)
-                        for fq in fallback_questions:
-                            if len(extracted_questions) >= target_count:
-                                break
-                            if fq.lower() in seen:
-                                continue
-                            extracted_questions.append({"question": fq, "source": "Fallback"})
-                            seen.add(fq.lower())
+                    if rag_only_questions:
+                        extracted_questions = [x for x in extracted_questions if x.get("source") == "RAG"]
 
                     if rag_only_questions and len(extracted_questions) == 0:
-                        with st.expander("Raw RAG output (question generation)", expanded=False):
+                        with st.expander("Raw generator output (/generate-questions)", expanded=False):
                             st.text(raw_generation or "(empty)")
                         raise ValueError(
-                            "RAG did not return parsable questions. Enable fallback or ensure your backend LLM is configured."
+                            "RAG did not return any questions. Disable RAG-only mode or verify the backend generator is using RAG."
                         )
-
-                    if rag_only_questions and len(extracted_questions) < target_count:
-                        st.warning(
-                            f"RAG produced {len(extracted_questions)} questions (requested {target_count}). "
-                            "Proceeding with RAG-only output."
-                        )
-                        with st.expander("Raw RAG output (question generation)", expanded=False):
-                            st.text(raw_generation or "(empty)")
 
                     extracted_questions = extracted_questions[:target_count]
 
@@ -1501,6 +1402,7 @@ elif st.session_state.current_page == "Questions":
                     for idx, item in enumerate(extracted_questions, start=1):
                         q = item["question"]
                         src = item["source"]
+                        m = item.get("metrics") or {}
                         try:
                             aresp = requests.post(
                                 f"{API_URL}/chat",
@@ -1518,12 +1420,12 @@ elif st.session_state.current_page == "Questions":
                             answer = f"RAG connection error: {str(e)}"
                             sources = []
 
-                        # Math metrics (0-10) - placeholders until real RAGAS/LLM grading is wired in
-                        coverage = random.randint(7, 10)
-                        specificity = random.randint(6, 10)
-                        insightfulness = random.randint(5, 9)
-                        groundedness = random.randint(7, 10)
-                        overall_pass = "✅" if all(v >= 7 for v in [coverage, specificity, insightfulness, groundedness]) else "❌"
+                        coverage_final = float(m.get("coverage_final") or 0.0)
+                        specificity_final = float(m.get("specificity_final") or 0.0)
+                        insightfulness_final = float(m.get("insightfulness_final") or 0.0)
+                        groundedness_final = float(m.get("groundedness_final") or 0.0)
+                        overall_score = float(m.get("overall_score") or 0.0)
+                        overall_pass = "✅" if bool(m.get("overall_pass")) else "❌"
 
                         rows.append({
                             "id": idx,
@@ -1531,10 +1433,11 @@ elif st.session_state.current_page == "Questions":
                             "answer": answer,
                             "source": src,
                             "retrieved_sources": len(sources) if isinstance(sources, list) else 0,
-                            "coverage": coverage,
-                            "specificity": specificity,
-                            "insightfulness": insightfulness,
-                            "groundedness": groundedness,
+                            "coverage_final": coverage_final,
+                            "specificity_final": specificity_final,
+                            "insightfulness_final": insightfulness_final,
+                            "groundedness_final": groundedness_final,
+                            "overall_score": overall_score,
                             "overall_pass": overall_pass,
                         })
 
@@ -1548,15 +1451,17 @@ elif st.session_state.current_page == "Questions":
                         "total_questions": total_questions,
                         "passed_questions": passed_questions,
                         "pass_rate": pass_rate,
-                        "coverage_rate": float(df["coverage"].mean() / 10 * 100) if total_questions else 0.0,
-                        "specificity_rate": float(df["specificity"].mean() / 10 * 100) if total_questions else 0.0,
-                        "insightfulness_rate": float(df["insightfulness"].mean() / 10 * 100) if total_questions else 0.0,
-                        "groundedness_rate": float(df["groundedness"].mean() / 10 * 100) if total_questions else 0.0,
+                        "coverage_rate": float(df["coverage_final"].mean() * 100) if total_questions else 0.0,
+                        "specificity_rate": float(df["specificity_final"].mean() * 100) if total_questions else 0.0,
+                        "insightfulness_rate": float(df["insightfulness_final"].mean() * 100) if total_questions else 0.0,
+                        "groundedness_rate": float(df["groundedness_final"].mean() * 100) if total_questions else 0.0,
+                        "overall_score_avg": float(df["overall_score"].mean()) if total_questions else 0.0,
                     }
 
                     st.session_state.question_gen_results = {
                         "questions": rows,
                         "metrics": metrics,
+                        "metrics_summary": metrics_summary,
                         "dataframe": df,
                         "product": target_product,
                         "target_count": target_count,
@@ -1665,82 +1570,203 @@ elif st.session_state.current_page == "Questions":
                     st.plotly_chart(fig_radar, use_container_width=True)
                 except Exception as e:
                     st.error(f"❌ Error creating chart: {str(e)}")
-        
-        # Questions Table with Filters
-        st.markdown("### 📋 Questions Table with Filters")
-        
-        # Filter options
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            filter_coverage = st.selectbox("Filter by Coverage", ["All", "Pass", "Fail"])
-        
-        with col2:
-            filter_specific = st.selectbox("Filter by Specificity", ["All", "Pass", "Fail"])
-        
-        with col3:
-            filter_overall = st.selectbox("Filter by Overall", ["All", "Pass", "Fail"])
-        
-        # Display table with questions, answers, sources, and full metrics
+
+        st.markdown("### 📈 Visual Statistics")
+
         df = results.get('dataframe', pd.DataFrame()).copy()
         try:
             df.columns = df.columns.astype(str).str.strip()
         except Exception:
             pass
 
-        expected_cols = [
+        def _clamp01(x):
+            try:
+                return max(0.0, min(1.0, float(x)))
+            except Exception:
+                return 0.0
+
+        def _answer_metrics(answer_text: str, retrieved_sources: int):
+            txt = (answer_text or "").strip()
+            t = txt.lower()
+
+            if not txt:
+                grounded = 0.0
+                specificity = 0.0
+                insight = 0.0
+                coverage = 0.0
+            else:
+                grounded = 0.85 if int(retrieved_sources or 0) > 0 else 0.40
+                has_numbers = any(ch.isdigit() for ch in txt)
+                specificity = _clamp01(0.45 + (0.15 if has_numbers else 0.0) + (0.10 if len(txt) > 300 else 0.0))
+                insight_markers = ["because", "therefore", "however", "trade-off", "pitfall", "best practice", "recommend"]
+                insight_hits = sum(1 for m in insight_markers if m in t)
+                insight = _clamp01(0.35 + 0.10 * insight_hits + (0.10 if "\n" in txt else 0.0))
+                coverage = _clamp01(0.40 + (0.10 if len(txt.split()) > 80 else 0.0) + (0.10 if int(retrieved_sources or 0) >= 2 else 0.0))
+
+            overall = _clamp01(0.25 * coverage + 0.25 * specificity + 0.25 * insight + 0.25 * grounded)
+            overall_pass = (
+                grounded >= 0.85
+                and specificity >= 0.65
+                and insight >= 0.75
+                and overall >= 0.80
+            )
+
+            return {
+                "coverage_a_final": coverage,
+                "specificity_a_final": specificity,
+                "insightfulness_a_final": insight,
+                "groundedness_a_final": grounded,
+                "overall_a_score": overall,
+                "overall_a_pass": overall_pass,
+            }
+
+        required_cols = [
             'id', 'question', 'answer', 'source', 'retrieved_sources',
-            'coverage', 'specificity', 'insightfulness', 'groundedness', 'overall_pass'
+            'coverage_final', 'specificity_final', 'insightfulness_final', 'groundedness_final',
+            'overall_score', 'overall_pass'
         ]
-        for c in expected_cols:
+        for c in required_cols:
             if c not in df.columns:
                 df[c] = "" if c in ['question', 'answer', 'source', 'overall_pass'] else 0
-        df = df.reindex(columns=expected_cols)
 
-        # Display table with Q&A, source, and metrics
+        if 'coverage_a_final' not in df.columns:
+            df['coverage_a_final'] = 0.0
+        if 'specificity_a_final' not in df.columns:
+            df['specificity_a_final'] = 0.0
+        if 'insightfulness_a_final' not in df.columns:
+            df['insightfulness_a_final'] = 0.0
+        if 'groundedness_a_final' not in df.columns:
+            df['groundedness_a_final'] = 0.0
+        if 'overall_a_score' not in df.columns:
+            df['overall_a_score'] = 0.0
+        if 'overall_a_pass' not in df.columns:
+            df['overall_a_pass'] = False
+
+        for i in range(len(df)):
+            try:
+                am = _answer_metrics(str(df.at[i, 'answer']), int(df.at[i, 'retrieved_sources'] or 0))
+                for k, v in am.items():
+                    df.at[i, k] = v
+            except Exception:
+                continue
+
+        try:
+            fig_dim = go.Figure(
+                data=[
+                    go.Bar(
+                        x=["Q:Coverage", "Q:Specificity", "Q:Insight", "Q:Grounded", "A:Coverage", "A:Specificity", "A:Insight", "A:Grounded"],
+                        y=[
+                            float(df['coverage_final'].mean() or 0.0),
+                            float(df['specificity_final'].mean() or 0.0),
+                            float(df['insightfulness_final'].mean() or 0.0),
+                            float(df['groundedness_final'].mean() or 0.0),
+                            float(df['coverage_a_final'].mean() or 0.0),
+                            float(df['specificity_a_final'].mean() or 0.0),
+                            float(df['insightfulness_a_final'].mean() or 0.0),
+                            float(df['groundedness_a_final'].mean() or 0.0),
+                        ],
+                        marker_color=['#00d4ff'] * 4 + ['#ff8c00'] * 4,
+                    )
+                ]
+            )
+            fig_dim.update_layout(yaxis=dict(range=[0, 1]), height=320, margin=dict(l=0, r=0, t=20, b=0))
+
+            passed_q = int((df.get('overall_pass') == '✅').sum()) if len(df) else 0
+            passed_a = int((df.get('overall_a_pass') == True).sum()) if len(df) else 0
+            total = int(len(df))
+            fig_pf = go.Figure(
+                data=[
+                    go.Bar(
+                        x=['Q Pass', 'Q Fail', 'A Pass', 'A Fail'],
+                        y=[passed_q, total - passed_q, passed_a, total - passed_a],
+                        marker_color=['#28a745', '#dc3545', '#28a745', '#dc3545'],
+                    )
+                ]
+            )
+            fig_pf.update_layout(height=320, margin=dict(l=0, r=0, t=20, b=0))
+
+            c1, c2 = st.columns(2)
+            with c1:
+                st.plotly_chart(fig_dim, use_container_width=True)
+            with c2:
+                st.plotly_chart(fig_pf, use_container_width=True)
+        except Exception as e:
+            st.warning(f"Chart error: {e}")
+
+        st.markdown("### 📋 Embedded Table (Excel Style)")
+
+        df_view = df.copy()
+        df_view['q_cov'] = df_view['coverage_final'].apply(lambda x: f"{_clamp01(x)*100:.1f}%")
+        df_view['q_spec'] = df_view['specificity_final'].apply(lambda x: f"{_clamp01(x)*100:.1f}%")
+        df_view['q_ins'] = df_view['insightfulness_final'].apply(lambda x: f"{_clamp01(x)*100:.1f}%")
+        df_view['q_grnd'] = df_view['groundedness_final'].apply(lambda x: f"{_clamp01(x)*100:.1f}%")
+        df_view['q_overall'] = df_view['overall_score'].apply(lambda x: f"{_clamp01(x)*100:.1f}%")
+        df_view['a_cov'] = df_view['coverage_a_final'].apply(lambda x: f"{_clamp01(x)*100:.1f}%")
+        df_view['a_spec'] = df_view['specificity_a_final'].apply(lambda x: f"{_clamp01(x)*100:.1f}%")
+        df_view['a_ins'] = df_view['insightfulness_a_final'].apply(lambda x: f"{_clamp01(x)*100:.1f}%")
+        df_view['a_grnd'] = df_view['groundedness_a_final'].apply(lambda x: f"{_clamp01(x)*100:.1f}%")
+        df_view['a_overall'] = df_view['overall_a_score'].apply(lambda x: f"{_clamp01(x)*100:.1f}%")
+        df_view['a_pass'] = df_view['overall_a_pass'].apply(lambda x: '✅' if bool(x) else '❌')
+
+        wide_cols = [
+            'id', 'question', 'answer', 'source', 'retrieved_sources',
+            'q_cov', 'q_spec', 'q_ins', 'q_grnd', 'q_overall', 'overall_pass',
+            'a_cov', 'a_spec', 'a_ins', 'a_grnd', 'a_overall', 'a_pass'
+        ]
         st.dataframe(
-            df[expected_cols],
+            df_view[wide_cols].rename(columns={
+                'retrieved_sources': '#Sources',
+                'q_cov': 'Q Coverage',
+                'q_spec': 'Q Specificity',
+                'q_ins': 'Q Insight',
+                'q_grnd': 'Q Grounded',
+                'q_overall': 'Q Overall',
+                'overall_pass': 'Q Pass',
+                'a_cov': 'A Coverage',
+                'a_spec': 'A Specificity',
+                'a_ins': 'A Insight',
+                'a_grnd': 'A Grounded',
+                'a_overall': 'A Overall',
+                'a_pass': 'A Pass',
+            }),
             use_container_width=True,
-            height=500,
-            column_config={
-                "id": st.column_config.TextColumn("ID", width="small"),
-                "question": st.column_config.TextColumn("Question", width="large"),
-                "answer": st.column_config.TextColumn("RAG Answer", width="large"),
-                "source": st.column_config.TextColumn("Source", width="medium"),
-                "retrieved_sources": st.column_config.NumberColumn("#Sources", width="small"),
-                "coverage": st.column_config.ProgressColumn("Coverage", format="%.1f", min_value=0, max_value=10),
-                "specificity": st.column_config.ProgressColumn("Specificity", format="%.1f", min_value=0, max_value=10),
-                "insightfulness": st.column_config.ProgressColumn("Insightfulness", format="%.1f", min_value=0, max_value=10),
-                "groundedness": st.column_config.ProgressColumn("Groundedness", format="%.1f", min_value=0, max_value=10),
-                "overall_pass": st.column_config.TextColumn("Overall", width="small")
-            }
+            height=520,
         )
-        
-        # Export Options
-        st.markdown("### 📤 Export Questions")
+
+        st.markdown("### 📤 Export")
         col1, col2, col3 = st.columns(3)
-        
         with col1:
-            if st.button("📄 Download All Questions"):
-                csv_data = results['dataframe'].to_csv(index=False)
-                st.download_button(
-                    label="📥 Download CSV",
-                    data=csv_data,
-                    file_name=f"questions_{results['product']}_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
-                    mime="text/csv"
-                )
-        
+            export_df = df_view[wide_cols].rename(columns={
+                'retrieved_sources': '#Sources',
+                'q_cov': 'Q Coverage',
+                'q_spec': 'Q Specificity',
+                'q_ins': 'Q Insight',
+                'q_grnd': 'Q Grounded',
+                'q_overall': 'Q Overall',
+                'overall_pass': 'Q Pass',
+                'a_cov': 'A Coverage',
+                'a_spec': 'A Specificity',
+                'a_ins': 'A Insight',
+                'a_grnd': 'A Grounded',
+                'a_overall': 'A Overall',
+                'a_pass': 'A Pass',
+            })
+            st.download_button(
+                label="📥 Download CSV (Questions + Answers + Metrics)",
+                data=export_df.to_csv(index=False),
+                file_name=f"qa_metrics_{results['product']}_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+                mime="text/csv",
+            )
+
         with col2:
-            if st.button("📊 Download Passed Only"):
-                passed_df = results['dataframe'][results['dataframe']['overall_pass'] == '✅']
-                csv_data = passed_df.to_csv(index=False)
-                st.download_button(
-                    label="📥 Download Passed Questions",
-                    data=csv_data,
-                    file_name=f"passed_questions_{results['product']}_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
-                    mime="text/csv"
-                )
-        
+            passed_df = export_df[(df.get('overall_pass') == '✅') & (df.get('overall_a_pass') == True)]
+            st.download_button(
+                label="📥 Download Passed Only (Q + A)",
+                data=passed_df.to_csv(index=False),
+                file_name=f"qa_metrics_passed_{results['product']}_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+                mime="text/csv",
+            )
+
         with col3:
             if st.button("🔄 Generate New Questions"):
                 st.session_state.question_gen_results = None

@@ -289,12 +289,43 @@ async def generate_questions(request: Dict[str, Any]):
         
         # Generate questions using RAG graph
         questions = generate_data_driven_questions(topic, num_questions)
+
+        total_questions = int(len(questions))
+        passed_questions = 0
+        coverage_final_sum = 0.0
+        specificity_final_sum = 0.0
+        insightfulness_final_sum = 0.0
+        groundedness_final_sum = 0.0
+        overall_score_sum = 0.0
+
+        for q in questions:
+            m = (q or {}).get("metrics") or {}
+            if bool(m.get("overall_pass")):
+                passed_questions += 1
+            coverage_final_sum += float(m.get("coverage_final") or 0.0)
+            specificity_final_sum += float(m.get("specificity_final") or 0.0)
+            insightfulness_final_sum += float(m.get("insightfulness_final") or 0.0)
+            groundedness_final_sum += float(m.get("groundedness_final") or 0.0)
+            overall_score_sum += float(m.get("overall_score") or 0.0)
+
+        denom = float(total_questions) if total_questions else 1.0
+        metrics_summary = {
+            "total_questions": total_questions,
+            "passed_questions": passed_questions,
+            "pass_rate": (passed_questions / denom) * 100.0 if total_questions else 0.0,
+            "coverage_final_avg": coverage_final_sum / denom,
+            "specificity_final_avg": specificity_final_sum / denom,
+            "insightfulness_final_avg": insightfulness_final_sum / denom,
+            "groundedness_final_avg": groundedness_final_sum / denom,
+            "overall_score_avg": overall_score_sum / denom,
+        }
         
         return {
             "status": "success",
             "questions": questions,
             "topic": topic,
             "num_generated": len(questions),
+            "metrics": metrics_summary,
             "generation_method": "RAG Graph Invoke",
             "data_source": "Self-Contained RAG System"
         }

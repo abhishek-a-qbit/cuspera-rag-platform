@@ -114,34 +114,98 @@ class DataDrivenQuestionGenerator:
         # Fallback
         return self._create_fallback_question(topic, index)["question"]
     
-    def _calculate_question_metrics(self, question: str) -> Dict[str, float]:
-        """Calculate quality metrics for generated question."""
-        # Coverage: How well it covers expected content
-        key_terms = ["6sense", "revenue", "AI", "platform", "features", "capabilities", "predictive", "analytics"]
-        coverage = sum(1 for term in key_terms if term.lower() in question.lower()) / len(key_terms)
-        
-        # Specificity: How focused the question is
-        vague_terms = ["thing", "stuff", "something", "various", "multiple"]
-        vague_count = sum(1 for term in vague_terms if term in question.lower())
-        specificity = max(0.0, 1.0 - (vague_count * 0.2))
-        
-        # Insightfulness: How valuable the question is
-        insight_indicators = ["how", "why", "compare", "implement", "strategy", "best practices"]
-        insight_count = sum(1 for indicator in insight_indicators if indicator in question.lower())
-        insightfulness = min(1.0, 0.3 + (insight_count * 0.2))
-        
-        # Groundedness: Based on actual data
-        groundedness = 0.8  # High since using RAG graph
-        
-        # Overall score
-        overall = (coverage * 0.25 + specificity * 0.25 + insightfulness * 0.25 + groundedness * 0.25)
-        
+    def _calculate_question_metrics(self, question: str) -> Dict[str, Any]:
+        """Calculate quality metrics for generated question.
+
+        Metric schema follows METRICS.txt:
+        - math scores in [0, 1]
+        - llm scores in [1, 5]
+        - final score is fused: s_final = λ*s_stat + (1-λ)*s_llm_norm
+        """
+
+        def _clamp01(x: float) -> float:
+            return max(0.0, min(1.0, float(x)))
+
+        def _stat_to_llm_1_5(s: float) -> int:
+            # map [0,1] -> [1,5]
+            s = _clamp01(s)
+            return int(round(1 + 4 * s))
+
+        def _llm_norm_0_1(llm_score_1_5: float) -> float:
+            # (sLLM - 1) / 4
+            return _clamp01((float(llm_score_1_5) - 1.0) / 4.0)
+
+        def _fuse(stat_0_1: float, llm_1_5: float, lam: float = 0.5) -> float:
+            return _clamp01(lam * _clamp01(stat_0_1) + (1.0 - lam) * _llm_norm_0_1(llm_1_5))
+
+        q_lower = (question or "").lower()
+
+        # Statistical (math) scores
+        key_terms = ["6sense", "revenue", "ai", "platform", "features", "capabilities", "predictive", "analytics"]
+        coverage_math = sum(1 for term in key_terms if term in q_lower) / float(len(key_terms))
+
+        vague_terms = ["thing", "stuff", "something", "various", "multiple", "some", "many"]
+        vague_count = sum(1 for term in vague_terms if term in q_lower)
+        specificity_math = _clamp01(1.0 - (vague_count * 0.15))
+
+        insight_indicators = ["how", "why", "compare", "versus", "implement", "strategy", "best practices", "trade-off", "pitfall"]
+        insight_count = sum(1 for indicator in insight_indicators if indicator in q_lower)
+        insightfulness_math = _clamp01(0.35 + (insight_count * 0.15))
+
+        # Groundedness is answer-focused in METRICS.txt; for question-only generation we treat it as
+        # "data-driven confidence". Keep conservative but non-zero.
+        groundedness_math = 0.80 if self.rag_system else 0.40
+
+        # LLM scores (proxy scoring until an actual LLM grader is wired here)
+        coverage_llm = _stat_to_llm_1_5(coverage_math)
+        specificity_llm = _stat_to_llm_1_5(specificity_math)
+        insightfulness_llm = _stat_to_llm_1_5(insightfulness_math)
+        groundedness_llm = _stat_to_llm_1_5(groundedness_math)
+
+        # Fused finals
+        coverage_final = _fuse(coverage_math, coverage_llm)
+        specificity_final = _fuse(specificity_math, specificity_llm)
+        insightfulness_final = _fuse(insightfulness_math, insightfulness_llm)
+        groundedness_final = _fuse(groundedness_math, groundedness_llm)
+
+        overall_score = _clamp01(
+            0.25 * coverage_final
+            + 0.25 * specificity_final
+            + 0.25 * insightfulness_final
+            + 0.25 * groundedness_final
+        )
+
+        # Recommended thresholds (Marketing FAQs) from METRICS.txt
+        thresholds = {
+            "groundedness_min": 0.85,
+            "specificity_min": 0.65,
+            "insightfulness_min": 0.75,
+            "overall_min": 0.80,
+        }
+        overall_pass = (
+            groundedness_final >= thresholds["groundedness_min"]
+            and specificity_final >= thresholds["specificity_min"]
+            and insightfulness_final >= thresholds["insightfulness_min"]
+            and overall_score >= thresholds["overall_min"]
+        )
+
         return {
-            "coverage": coverage,
-            "specificity": specificity,
-            "insight": insightfulness,
-            "grounded": groundedness,
-            "overall_score": overall
+            "coverage_math": coverage_math,
+            "coverage_llm": coverage_llm,
+            "coverage_final": coverage_final,
+            "specificity_math": specificity_math,
+            "specificity_llm": specificity_llm,
+            "specificity_final": specificity_final,
+            "insightfulness_math": insightfulness_math,
+            "insightfulness_llm": insightfulness_llm,
+            "insightfulness_final": insightfulness_final,
+            "groundedness_math": groundedness_math,
+            "groundedness_llm": groundedness_llm,
+            "groundedness_final": groundedness_final,
+            "overall_score": overall_score,
+            "overall_pass": overall_pass,
+            "thresholds": thresholds,
+            "fusion_lambda": 0.5,
         }
     
     def _llm_evaluate_question(self, question: str) -> Dict[str, Any]:
@@ -199,13 +263,7 @@ class DataDrivenQuestionGenerator:
             "context_source": "Fallback Template",
             "chunk_id": f"fallback_{index}",
             "reasoning": f"Generated using fallback template for topic: {topic or '6sense'}",
-            "metrics": {
-                "coverage": 0.6,
-                "specificity": 0.7,
-                "insight": 0.5,
-                "grounded": 0.4,
-                "overall_score": 0.55
-            },
+            "metrics": self._calculate_question_metrics(question),
             "llm_eval": self._llm_evaluate_question(question)
         }
     
