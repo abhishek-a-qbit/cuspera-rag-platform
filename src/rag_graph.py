@@ -14,6 +14,7 @@ from persistent_vector_store import PersistentVectorStore, create_persistent_vec
 from config import GOOGLE_API_KEY, OPENAI_API_KEY, USE_OPENAI, TOP_K_RETRIEVAL, DATABASE_PATH
 import os
 import json
+import re
 
 
 class RAGGraph:
@@ -65,6 +66,75 @@ Provide a comprehensive and helpful answer:"""
         mode = state.get("mode", "answer")  # answer | question_generation
         style = state.get("style", "default")  # default | loose
         target_count = int(state.get("target_count", 10) or 10)
+
+        def _normalize_questions_payload(raw_text: str) -> str:
+            """Return a JSON string: {"questions": [...]}.
+
+            Accepts:
+            - JSON array of strings
+            - JSON object with key 'questions'
+            - Free-form text containing questions
+            """
+            if not raw_text:
+                return json.dumps({"questions": []})
+
+            text = str(raw_text).strip()
+
+            # 1) Try strict JSON as-is
+            try:
+                payload = json.loads(text)
+            except Exception:
+                payload = None
+
+            # 2) Try to salvage JSON substring
+            if payload is None:
+                for start_char, end_char in (("[", "]"), ("{", "}")):
+                    start = text.find(start_char)
+                    end = text.rfind(end_char)
+                    if start != -1 and end != -1 and end > start:
+                        try:
+                            payload = json.loads(text[start : end + 1])
+                            break
+                        except Exception:
+                            payload = None
+
+            questions: List[str] = []
+            if isinstance(payload, list):
+                questions = [str(x).strip() for x in payload if str(x).strip()]
+            elif isinstance(payload, dict) and isinstance(payload.get("questions"), list):
+                questions = [str(x).strip() for x in payload.get("questions", []) if str(x).strip()]
+
+            # 3) Fallback to text extraction if JSON parsing failed
+            if not questions:
+                candidates: List[str] = []
+
+                # Line-based
+                for raw in text.splitlines():
+                    q = raw.strip().lstrip("-•* ")
+                    q = q.lstrip("0123456789.):- ").strip()
+                    if q.endswith("?") and len(q) > 10:
+                        candidates.append(q)
+
+                # Regex-based (paragraph outputs)
+                for match in re.findall(r"[^\?\n]{10,}\?", text):
+                    q = match.strip().lstrip("-•* ")
+                    q = q.lstrip("0123456789.):- ").strip()
+                    if q.endswith("?") and len(q) > 10:
+                        candidates.append(q)
+
+                # Dedupe while preserving order
+                seen = set()
+                deduped: List[str] = []
+                for q in candidates:
+                    key = q.lower()
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    deduped.append(q)
+                questions = deduped
+
+            questions = questions[:target_count]
+            return json.dumps({"questions": questions}, ensure_ascii=False)
         
         # Step 1: Retrieve relevant documents
         retrieved_docs = self.vector_store.retrieve(question, top_k=TOP_K_RETRIEVAL)
@@ -96,7 +166,7 @@ Provide a comprehensive and helpful answer:"""
                             "TASK: Generate EXACTLY {target_count} unique, grammatically correct questions. "
                             "Each question must end with a '?'.\n\n"
                             "OUTPUT FORMAT (STRICT): Return ONLY valid JSON, either a JSON array of strings OR "
-                            "an object: {\"questions\": [\"...\"]}.\n\n"
+                            "an object: {{\"questions\": [\"...\"]}}.\n\n"
                             "FOCUS: {focus}"
                         ),
                     ])
@@ -106,14 +176,15 @@ Provide a comprehensive and helpful answer:"""
                         focus=question,
                     )
                     response = self.llm.invoke(messages)
-                    answer = response.content if hasattr(response, "content") else str(response)
+                    raw = response.content if hasattr(response, "content") else str(response)
+                    answer = _normalize_questions_payload(raw)
                 else:
                     # Draft answer (grounded)
                     draft_prompt = ChatPromptTemplate.from_messages([
                         (
                             "system",
-                            "You are a helpful B2B software assistant. Use the provided context. "
-                            "If the context is insufficient, say what is missing."
+                            "You are a helpful B2B software assistant. Use the provided context. Provide a single paragraph answer"
+                            
                         ),
                         ("human", "CONTEXT:\n{context}\n\nQUESTION:\n{question}\n\nWrite a clear, helpful answer."),
                     ])

@@ -1,6 +1,7 @@
 import logging
 import sys
 import os
+import time
 from pathlib import Path
 
 # Add src to Python path
@@ -48,6 +49,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+async def _warm_rag_graph_on_startup():
+    start = time.time()
+    try:
+        get_rag_graph()
+        logger.info(f"RAG warmup complete in {time.time() - start:.2f}s")
+    except Exception as e:
+        logger.error(f"RAG warmup failed after {time.time() - start:.2f}s: {e}")
 
 # ==================== MODELS ====================
 
@@ -125,19 +136,26 @@ async def health():
 async def chat(request: ChatRequest):
     """Chat endpoint using persistent RAG graph with caching."""
     try:
+        overall_start = time.time()
         # Import persistent RAG graph
         from rag_graph import create_persistent_rag_graph, run_rag_query
         
         # Get or create RAG graph instance
+        graph_start = time.time()
         rag_graph = get_rag_graph()
+        logger.info(f"/chat rag_graph ready in {time.time() - graph_start:.2f}s")
         
         # Process question using persistent RAG graph
+        query_start = time.time()
         result = run_rag_query(
             rag_graph,
             request.question,
             mode=request.mode,
             style=request.style,
             target_count=request.target_count,
+        )
+        logger.info(
+            f"/chat run_rag_query completed in {time.time() - query_start:.2f}s; total {time.time() - overall_start:.2f}s"
         )
         
         # Format response for API

@@ -272,7 +272,7 @@ if st.session_state.current_page == "Chat":
                         f"{API_URL}/chat",
                         json={"question": user_input, "product": "6sense", "style": "loose"},
                         headers={"Content-Type": "application/json"},
-                        timeout=15
+                        timeout=60
                     )
                     
                     if response.status_code == 200:
