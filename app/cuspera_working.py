@@ -469,35 +469,53 @@ elif st.session_state.current_page == "Questions":
         # Detailed Q&A table
         st.markdown("### 📋 Detailed Question & Answer Metrics")
         
-        # Prepare DataFrame
-        qa_data = []
+        # Display Q&A pairs with expanders for full text
         for i, q in enumerate(results.get("questions", []), 1):
             q_metrics = q.get("metrics", {})
             a_metrics = q.get("answer_metrics", {})
             
-            qa_data.append({
-                "ID": i,
-                "Question": q.get("question", "")[:100] + "..." if len(q.get("question", "")) > 100 else q.get("question", ""),
-                "Answer": q.get("answer", "")[:100] + "..." if len(q.get("answer", "")) > 100 else q.get("answer", ""),
-                "Sources": q.get("retrieved_sources", 0),
+            with st.expander(f"**Q{i}:** {q.get('question', '')[:80]}{'...' if len(q.get('question', '')) > 80 else ''}", expanded=False):
+                col1, col2 = st.columns(2)
                 
-                # Question metrics
-                "Q_Coverage": f"{q_metrics.get('coverage_final', 0)*100:.1f}%",
-                "Q_Specificity": f"{q_metrics.get('specificity_final', 0)*100:.1f}%",
-                "Q_Insight": f"{q_metrics.get('insightfulness_final', 0)*100:.1f}%",
-                "Q_Grounded": f"{q_metrics.get('groundedness_final', 0)*100:.1f}%",
-                "Q_Pass": "✅" if q_metrics.get("overall_pass") else "❌",
+                with col1:
+                    st.markdown("##### 📝 Question")
+                    st.info(q.get("question", ""))
+                    
+                    st.markdown("##### 📊 Question Metrics")
+                    q_metrics_df = pd.DataFrame({
+                        "Metric": ["Coverage", "Specificity", "Insightfulness", "Groundedness", "Overall"],
+                        "Score": [
+                            f"{q_metrics.get('coverage_final', 0)*100:.1f}%",
+                            f"{q_metrics.get('specificity_final', 0)*100:.1f}%",
+                            f"{q_metrics.get('insightfulness_final', 0)*100:.1f}%",
+                            f"{q_metrics.get('groundedness_final', 0)*100:.1f}%",
+                            f"{q_metrics.get('overall_score', 0)*100:.1f}%"
+                        ],
+                        "Pass": ["—", "—", "—", "—", "✅" if q_metrics.get("overall_pass") else "❌"]
+                    })
+                    st.dataframe(q_metrics_df, use_container_width=True, hide_index=True)
                 
-                # Answer metrics
-                "A_Coverage": f"{a_metrics.get('coverage_final', 0)*100:.1f}%",
-                "A_Specificity": f"{a_metrics.get('specificity_final', 0)*100:.1f}%",
-                "A_Insight": f"{a_metrics.get('insightfulness_final', 0)*100:.1f}%",
-                "A_Grounded": f"{a_metrics.get('groundedness_final', 0)*100:.1f}%",
-                "A_Pass": "✅" if a_metrics.get("overall_pass") else "❌"
-            })
-        
-        df = pd.DataFrame(qa_data)
-        st.dataframe(df, use_container_width=True, height=400)
+                with col2:
+                    st.markdown("##### 💬 Answer")
+                    st.success(q.get("answer", ""))
+                    
+                    st.markdown("##### 📊 Answer Metrics")
+                    a_metrics_df = pd.DataFrame({
+                        "Metric": ["Coverage", "Specificity", "Insightfulness", "Groundedness", "Overall"],
+                        "Score": [
+                            f"{a_metrics.get('coverage_final', 0)*100:.1f}%",
+                            f"{a_metrics.get('specificity_final', 0)*100:.1f}%",
+                            f"{a_metrics.get('insightfulness_final', 0)*100:.1f}%",
+                            f"{a_metrics.get('groundedness_final', 0)*100:.1f}%",
+                            f"{a_metrics.get('overall_score', 0)*100:.1f}%"
+                        ],
+                        "Pass": ["—", "—", "—", "—", "✅" if a_metrics.get("overall_pass") else "❌"]
+                    })
+                    st.dataframe(a_metrics_df, use_container_width=True, hide_index=True)
+                
+                st.markdown(f"**📚 Sources Retrieved:** {q.get('retrieved_sources', 0)}")
+                st.markdown(f"**🔗 Context Source:** {q.get('context_source', '')}")
+                st.markdown("---")
         
         # Export options
         st.markdown("### 📤 Export Options")
