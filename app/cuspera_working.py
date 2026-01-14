@@ -217,69 +217,20 @@ with st.sidebar:
 
 # Main Content based on navigation
 if st.session_state.current_page == "Chat":
-    st.markdown("## 💬 AI Chat Assistant")
-    
-    # Chat interface
-    chat_container = st.container()
-    
-    with chat_container:
-        # Display chat messages
-        for message in st.session_state.messages:
-            if message["role"] == "user":
-                st.markdown(f"""
-                <div class="chat-message user-message">
-                    <strong>You:</strong> {message["content"]}
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown(f"""
-                <div class="chat-message bot-message">
-                    <strong>🤖 Cuspera:</strong> {message["content"]}
-                </div>
-                """, unsafe_allow_html=True)
+    # Import and use the Rufus chat interface
+    try:
+        from rufus_chat_interface import rufus_chat_interface
+        rufus_chat_interface()
+    except ImportError as e:
+        st.error(f"Could not load chat interface: {e}")
+        st.markdown("## 💬 Basic Chat Assistant")
+        st.info("Please install the required dependencies for the advanced chat interface.")
         
-        # Input area
-        col1, col2 = st.columns([4, 1])
-        with col1:
-            user_input = st.text_input("Ask about B2B software, ROI, or recommendations:", 
-                                   key="user_input", 
-                                   placeholder="e.g., What's the ROI of 6sense for a 50-person startup?")
-        with col2:
-            send_button = st.button("🚀 Send", type="primary")
-        
-        if send_button and user_input:
-            # Add user message
-            st.session_state.messages.append({"role": "user", "content": user_input})
-            
-            # Get AI response
-            with st.spinner("🤖 Thinking..."):
-                try:
-                    response = requests.post(
-                        f"{API_URL}/chat",
-                        json={"question": user_input, "product": "6sense", "style": "loose"},
-                        headers={"Content-Type": "application/json"},
-                        timeout=60
-                    )
-                    
-                    if response.status_code == 200:
-                        result = response.json()
-                        ai_response = result["answer"]
-                        
-                        # Add sources if available
-                        if result.get("sources"):
-                            ai_response += "\n\n**📚 Sources:**\n"
-                            for i, source in enumerate(result["sources"][:3]):
-                                ai_response += f"\n{i+1}. {source.get('content', '')[:100]}..."
-                        
-                        st.session_state.messages.append({"role": "assistant", "content": ai_response})
-                        st.rerun()
-                    else:
-                        st.error("❌ API Error. Please try again.")
-                        
-                except Exception as e:
-                    st.error(f"❌ Error: {str(e)}")
-
-# This continues from Part 1 - add this after the Chat page section
+        # Basic fallback chat
+        user_input = st.text_input("Ask me anything:")
+        if user_input:
+            st.write(f"You: {user_input}")
+            st.write(f"Assistant: I received your question: {user_input}")
 
 elif st.session_state.current_page == "Questions":
     st.markdown("## 🎲 Enhanced Question Generator")

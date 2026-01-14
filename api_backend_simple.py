@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 # Global RAG instance to avoid recreating
 rag_graph_instance = None
+advanced_agent_instance = None
 
 def get_rag_graph():
     """Get or create RAG graph instance."""
@@ -34,6 +35,20 @@ def get_rag_graph():
         rag_graph_instance = create_persistent_rag_graph(use_persistent=True, force_reprocess=False)
         logger.info("RAG graph created and cached")
     return rag_graph_instance
+
+def get_advanced_agent():
+    """Get or create advanced AI agent instance."""
+    global advanced_agent_instance
+    if advanced_agent_instance is None:
+        logger.info("Creating advanced AI agent...")
+        try:
+            from advanced_ai_agent import AdvancedAIAgent
+            advanced_agent_instance = AdvancedAIAgent()
+            logger.info("Advanced AI agent created successfully")
+        except Exception as e:
+            logger.error(f"Failed to create advanced agent: {e}")
+            advanced_agent_instance = None
+    return advanced_agent_instance
 
 app = FastAPI(
     title="Cuspera RAG API",
@@ -387,6 +402,68 @@ async def generate_questions(request: Dict[str, Any]):
             "questions": [],
             "generation_method": "Failed"
         }
+
+# ==================== ADVANCED AI AGENT ENDPOINTS ====================
+
+class AdvancedChatRequest(BaseModel):
+    message: str
+    session_id: str = "default"
+
+class AdvancedChatResponse(BaseModel):
+    response: str
+    sources: List[Dict[str, Any]] = []
+    metrics: Dict[str, Any] = {}
+    navigation_intent: Optional[str] = None
+    tools_used: List[str] = []
+    session_id: str
+
+@app.post("/advanced-chat", response_model=AdvancedChatResponse, tags=["Advanced Agent"])
+async def advanced_chat(request: AdvancedChatRequest):
+    """Advanced AI Agent chat endpoint with LangGraph state management."""
+    try:
+        agent = get_advanced_agent()
+        if agent is None:
+            raise HTTPException(status_code=503, detail="Advanced agent not available")
+        
+        # Use the advanced agent
+        result = agent.chat(request.message, request.session_id)
+        
+        return AdvancedChatResponse(
+            response=result.get("response", ""),
+            sources=result.get("sources", []),
+            metrics=result.get("metrics", {}),
+            navigation_intent=result.get("navigation_intent"),
+            tools_used=result.get("tools_used", []),
+            session_id=result.get("session_id", request.session_id)
+        )
+        
+    except Exception as e:
+        logger.error(f"Advanced chat error: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return AdvancedChatResponse(
+            response=f"I'm having trouble processing your request: {str(e)}",
+            sources=[],
+            metrics={},
+            navigation_intent=None,
+            tools_used=["error"],
+            session_id=request.session_id
+        )
+
+@app.get("/agent-history/{session_id}", tags=["Advanced Agent"])
+async def get_agent_history(session_id: str):
+    """Get conversation history for a session."""
+    try:
+        agent = get_advanced_agent()
+        if agent is None:
+            raise HTTPException(status_code=503, detail="Advanced agent not available")
+        
+        history = agent.get_conversation_history(session_id)
+        return {"session_id": session_id, "history": history}
+        
+    except Exception as e:
+        logger.error(f"History error: {e}")
+        return {"session_id": session_id, "history": [], "error": str(e)}
 
 # ==================== START SERVER ====================
 
