@@ -173,7 +173,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # API Configuration
-API_URL = "http://localhost:8000"
+API_URL = "http://localhost:8001"
 
 # Initialize session state
 if 'messages' not in st.session_state:

@@ -123,7 +123,8 @@ async def root():
             "/analytics",
             "/reports",
             "/stats",
-            "/products"
+            "/products",
+            "/generate-questions"
         ]
     }
 
@@ -278,7 +279,7 @@ async def products():
 
 @app.post("/generate-questions", response_model=Dict[str, Any], tags=["Questions"])
 async def generate_questions(request: Dict[str, Any]):
-    """Generate questions using RAG graph from actual data."""
+    """Generate questions AND answers with full metrics for both."""
     try:
         # Import data-driven question generator
         from data_driven_question_generator import generate_data_driven_questions
@@ -287,38 +288,84 @@ async def generate_questions(request: Dict[str, Any]):
         topic = request.get("topic", None)
         num_questions = request.get("num_questions", 10)
         
-        # Generate questions using RAG graph
+        logger.info(f"Generating {num_questions} questions for topic: {topic}")
+        
+        # Generate questions (this now includes answers and answer metrics)
         questions = generate_data_driven_questions(topic, num_questions)
-
-        total_questions = int(len(questions))
+        
+        logger.info(f"Generated {len(questions)} question-answer pairs")
+        
+        # Calculate summary metrics for BOTH questions and answers
+        total_questions = len(questions)
+        
+        # Question metrics
         passed_questions = 0
-        coverage_final_sum = 0.0
-        specificity_final_sum = 0.0
-        insightfulness_final_sum = 0.0
-        groundedness_final_sum = 0.0
-        overall_score_sum = 0.0
-
+        coverage_q_sum = 0.0
+        specificity_q_sum = 0.0
+        insightfulness_q_sum = 0.0
+        groundedness_q_sum = 0.0
+        overall_q_sum = 0.0
+        
+        # Answer metrics
+        passed_answers = 0
+        coverage_a_sum = 0.0
+        specificity_a_sum = 0.0
+        insightfulness_a_sum = 0.0
+        groundedness_a_sum = 0.0
+        overall_a_sum = 0.0
+        
         for q in questions:
-            m = (q or {}).get("metrics") or {}
-            if bool(m.get("overall_pass")):
+            # Question metrics
+            q_metrics = q.get("metrics", {})
+            if q_metrics.get("overall_pass"):
                 passed_questions += 1
-            coverage_final_sum += float(m.get("coverage_final") or 0.0)
-            specificity_final_sum += float(m.get("specificity_final") or 0.0)
-            insightfulness_final_sum += float(m.get("insightfulness_final") or 0.0)
-            groundedness_final_sum += float(m.get("groundedness_final") or 0.0)
-            overall_score_sum += float(m.get("overall_score") or 0.0)
-
-        denom = float(total_questions) if total_questions else 1.0
+            
+            coverage_q_sum += float(q_metrics.get("coverage_final", 0.0))
+            specificity_q_sum += float(q_metrics.get("specificity_final", 0.0))
+            insightfulness_q_sum += float(q_metrics.get("insightfulness_final", 0.0))
+            groundedness_q_sum += float(q_metrics.get("groundedness_final", 0.0))
+            overall_q_sum += float(q_metrics.get("overall_score", 0.0))
+            
+            # Answer metrics
+            a_metrics = q.get("answer_metrics", {})
+            if a_metrics.get("overall_pass"):
+                passed_answers += 1
+            
+            coverage_a_sum += float(a_metrics.get("coverage_final", 0.0))
+            specificity_a_sum += float(a_metrics.get("specificity_final", 0.0))
+            insightfulness_a_sum += float(a_metrics.get("insightfulness_final", 0.0))
+            groundedness_a_sum += float(a_metrics.get("groundedness_final", 0.0))
+            overall_a_sum += float(a_metrics.get("overall_score", 0.0))
+        
+        denom = float(total_questions) if total_questions > 0 else 1.0
+        
         metrics_summary = {
             "total_questions": total_questions,
+            
+            # Question metrics
             "passed_questions": passed_questions,
-            "pass_rate": (passed_questions / denom) * 100.0 if total_questions else 0.0,
-            "coverage_final_avg": coverage_final_sum / denom,
-            "specificity_final_avg": specificity_final_sum / denom,
-            "insightfulness_final_avg": insightfulness_final_sum / denom,
-            "groundedness_final_avg": groundedness_final_sum / denom,
-            "overall_score_avg": overall_score_sum / denom,
+            "question_pass_rate": (passed_questions / denom) * 100.0,
+            "coverage_q_avg": coverage_q_sum / denom,
+            "specificity_q_avg": specificity_q_sum / denom,
+            "insightfulness_q_avg": insightfulness_q_sum / denom,
+            "groundedness_q_avg": groundedness_q_sum / denom,
+            "overall_q_avg": overall_q_sum / denom,
+            
+            # Answer metrics
+            "passed_answers": passed_answers,
+            "answer_pass_rate": (passed_answers / denom) * 100.0,
+            "coverage_a_avg": coverage_a_sum / denom,
+            "specificity_a_avg": specificity_a_sum / denom,
+            "insightfulness_a_avg": insightfulness_a_sum / denom,
+            "groundedness_a_avg": groundedness_a_sum / denom,
+            "overall_a_avg": overall_a_sum / denom,
+            
+            # Combined metrics
+            "combined_pass_rate": ((passed_questions + passed_answers) / (denom * 2)) * 100.0
         }
+        
+        logger.info(f"Question pass rate: {metrics_summary['question_pass_rate']:.1f}%")
+        logger.info(f"Answer pass rate: {metrics_summary['answer_pass_rate']:.1f}%")
         
         return {
             "status": "success",
@@ -326,16 +373,19 @@ async def generate_questions(request: Dict[str, Any]):
             "topic": topic,
             "num_generated": len(questions),
             "metrics": metrics_summary,
-            "generation_method": "RAG Graph Invoke",
+            "generation_method": "RAG Graph with Real LLM Grading",
             "data_source": "Self-Contained RAG System"
         }
+        
     except Exception as e:
         logger.error(f"Question generation error: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
         return {
             "status": "error",
             "error": str(e),
             "questions": [],
-            "generation_method": "Fallback"
+            "generation_method": "Failed"
         }
 
 # ==================== START SERVER ====================
@@ -344,4 +394,3 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT", 8001))
     logger.info(f"Starting server on port {port}")
     uvicorn.run(app, host="0.0.0.0", port=port)
-

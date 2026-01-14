@@ -10,3 +10,18 @@ rank_bm25>=0.2.2
 plotly>=5.18.0
 pandas>=2.0.0
 langchain-openai
+
+# For semantic similarity and embeddings
+sentence-transformers==2.2.2
+
+# For NLP-based metrics (Named Entity Recognition, etc.)
+spacy==3.7.2
+
+# spaCy language model (run this after installing spacy):
+# python -m spacy download en_core_web_sm
+
+# For numerical operations (if not already installed)
+numpy>=1.24.0
+
+# For better text processing
+nltk>=3.8.1
