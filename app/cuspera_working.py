@@ -298,7 +298,7 @@ elif st.session_state.current_page == "Questions":
                 "6sense Revenue AI", "Demandbase One", "Bombora", 
                 "ZoomInfo SalesOS", "LinkedIn Sales Navigator"
             ])
-            target_count = st.slider("Target Question Count", 5, 50, 10)
+            target_count = st.slider("Target Question Count", min_value=1, max_value=50, value=10, step=1)
             
             custom_prompt = st.text_area(
                 "🔍 Custom Prompt (Optional)",
@@ -327,7 +327,7 @@ elif st.session_state.current_page == "Questions":
                     response = requests.post(
                         f"{API_URL}/generate-questions",
                         json={"topic": target_product, "num_questions": target_count},
-                        timeout=120  # Longer timeout for LLM grading
+                        timeout=300  # Increased timeout for LLM grading
                     )
                     
                     if response.status_code == 200:
@@ -497,7 +497,14 @@ elif st.session_state.current_page == "Questions":
                 
                 with col2:
                     st.markdown("##### 💬 Answer")
-                    st.success(q.get("answer", ""))
+                    st.markdown(f"""
+                    <div style="background: linear-gradient(135deg, #1a1a2e 0%, #0f0f23 100%); 
+                                border: 1px solid #00d4ff; border-radius: 8px; padding: 1rem; margin: 0.5rem 0;">
+                        <p style="color: white; font-size: 1rem; line-height: 1.5;">
+                            {q.get("answer", "")}
+                        </p>
+                    </div>
+                    """, unsafe_allow_html=True)
                     
                     st.markdown("##### 📊 Answer Metrics")
                     a_metrics_df = pd.DataFrame({
@@ -587,6 +594,45 @@ elif st.session_state.current_page == "Questions":
             )
         
         with col3:
+            # FAQ Export
+            if st.button("📋 Generate FAQ Format"):
+                faq_data = []
+                for i, q in enumerate(results.get("questions", []), 1):
+                    q_m = q.get("metrics", {})
+                    a_m = q.get("answer_metrics", {})
+                    
+                    # Create FAQ entry with sample structure
+                    faq_entry = {
+                        "question": q.get("question", ""),
+                        "answer": q.get("answer", ""),
+                        "section": "General",  # Can be customized
+                        "context": [
+                            {
+                                "name": "Generated Q&A",
+                                "code": f"Q_{i}",
+                                "type": "capability",
+                                "score": q_m.get("overall_score", 0)
+                            }
+                        ],
+                        "evidence": [
+                            {
+                                "link": f"#question_{i}",
+                                "type": "generated",
+                                "score": q_m.get("groundedness_final", 0)
+                            }
+                        ]
+                    }
+                    faq_data.append(faq_entry)
+                
+                # Convert to JSON and provide download
+                faq_json = json.dumps(faq_data, indent=2)
+                st.download_button(
+                    label="📋 Download FAQ JSON",
+                    data=faq_json,
+                    file_name=f"faq_{results['product']}_{datetime.now().strftime('%Y%m%d_%H%M')}.json",
+                    mime="application/json"
+                )
+            
             if st.button("🔄 Generate New Questions"):
                 st.session_state.question_gen_results = None
                 st.rerun()

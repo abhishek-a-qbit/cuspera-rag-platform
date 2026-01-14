@@ -12,6 +12,7 @@ import pickle
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from config import CHROMA_DB_PATH, COLLECTION_NAME, GOOGLE_API_KEY, OPENAI_API_KEY, USE_OPENAI_EMBEDDINGS, TOP_K_RETRIEVAL, DATABASE_PATH
+from data_loader import create_searchable_text
 
 class PersistentVectorStore:
     """Vector store with persistent chunking and embedding caching."""
@@ -182,13 +183,36 @@ class PersistentVectorStore:
         # Need to reprocess
         print("[PERSISTENT] Processing documents and creating embeddings...")
         
-        # Import processors
-        from enhanced_data_processor import EnhancedDataProcessor
-        from dataset2_processor import Dataset2Processor
+        # Use existing data loader
+        from data_loader import create_searchable_text
         
-        # Process datasets
-        processor = EnhancedDataProcessor()
-        chunks = processor.process_datasets(database_path)
+        # Load documents from database path
+        documents = []
+        if os.path.exists(database_path):
+            for filename in os.listdir(database_path):
+                if filename.endswith('.json'):
+                    filepath = os.path.join(database_path, filename)
+                    try:
+                        with open(filepath, 'r', encoding='utf-8') as f:
+                            data = json.load(f)
+                            if isinstance(data, list):
+                                documents.extend(data)
+                            else:
+                                documents.append(data)
+                    except Exception as e:
+                        print(f"[PERSISTENT] Error loading {filename}: {e}")
+        
+        # Create chunks from documents
+        chunks = []
+        for i, doc in enumerate(documents):
+            if isinstance(doc, dict) and 'content' in doc:
+                chunk = {
+                    "id": f"doc_{i}",
+                    "content": doc['content'],
+                    "metadata": doc.get('metadata', {}),
+                    "source": doc.get('source', filename)
+                }
+                chunks.append(chunk)
         
         if not chunks:
             print("[WARNING] No documents to index.")
@@ -204,8 +228,7 @@ class PersistentVectorStore:
         
         for chunk in chunks:
             # Create searchable text
-            from enhanced_data_processor import create_enhanced_searchable_text
-            searchable_text = create_enhanced_searchable_text(chunk)
+            searchable_text = create_searchable_text(chunk)
             
             ids.append(chunk["id"])
             texts.append(searchable_text)

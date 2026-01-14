@@ -209,19 +209,13 @@ Provide a comprehensive and helpful answer:"""
                         answer = draft
             else:
                 # No LLM configured: keep behavior predictable for the frontend.
-                if mode == "question_generation":
-                    answer = json.dumps({"questions": []})
-                else:
-                    answer = (
-                        f"No LLM configured, so I can only show retrieved context.\n\n"
-                        f"CONTEXT:\n{context_text}"
-                    )
+                answer = (
+                    f"No LLM configured, so I can only show retrieved context.\n\n"
+                    f"CONTEXT:\n{context_text}"
+                )
         except Exception as e:
             print(f"[ERROR] RAG pipeline failed: {e}")
-            if mode == "question_generation":
-                answer = json.dumps({"questions": []})
-            else:
-                answer = "I encountered an error while generating a response. Please try again."
+            answer = "I encountered an error while generating a response. Please try again."
 
         return {
             "question": question,

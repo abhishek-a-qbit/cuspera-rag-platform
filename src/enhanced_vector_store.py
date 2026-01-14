@@ -4,12 +4,13 @@ from langchain_openai import OpenAIEmbeddings
 from typing import List, Dict, Any
 import sys
 import os
+import json
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from config import CHROMA_DB_PATH, COLLECTION_NAME, GOOGLE_API_KEY, OPENAI_API_KEY, USE_OPENAI_EMBEDDINGS, TOP_K_RETRIEVAL
-from enhanced_data_processor import EnhancedDataProcessor, create_enhanced_searchable_text
+from data_loader import create_searchable_text
 from hybrid_search import HybridSearcher
 
 class EnhancedVectorStore:
@@ -39,8 +40,8 @@ class EnhancedVectorStore:
         self.client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
         self.collection = None
         
-        # Initialize enhanced data processor
-        self.processor = EnhancedDataProcessor()
+        # Use simple document processing
+        self.processor = None
         
         # Initialize hybrid search
         self.use_hybrid = use_hybrid
@@ -75,9 +76,22 @@ class EnhancedVectorStore:
         if self.collection is None:
             self.create_collection()
         
-        # Process datasets with enhanced chunking
-        print("\n[ENHANCED PROCESSING] Starting enhanced data processing...")
-        documents = self.processor.process_datasets(database_path)
+        # Process datasets with simple loading
+        print("\n[ENHANCED PROCESSING] Starting data processing...")
+        documents = []
+        if os.path.exists(database_path):
+            for filename in os.listdir(database_path):
+                if filename.endswith('.json'):
+                    filepath = os.path.join(database_path, filename)
+                    try:
+                        with open(filepath, 'r', encoding='utf-8') as f:
+                            data = json.load(f)
+                            if isinstance(data, list):
+                                documents.extend(data)
+                            else:
+                                documents.append(data)
+                    except Exception as e:
+                        print(f"[ENHANCED] Error loading {filename}: {e}")
         
         if not documents:
             print("[WARNING] No documents to index. Creating empty collection.")
@@ -89,8 +103,8 @@ class EnhancedVectorStore:
         metadatas = []
         
         for doc in documents:
-            # Create enhanced searchable text
-            searchable_text = create_enhanced_searchable_text(doc)
+            # Create searchable text
+            searchable_text = create_searchable_text(doc)
             
             ids.append(doc["id"])
             texts.append(searchable_text)

@@ -1,7 +1,7 @@
 import os
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
-# load_dotenv()  # Commented out to avoid Unicode issues
+load_dotenv()  # Load environment variables from .env file
 
 # API Configuration - Direct values to avoid dotenv issues
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
