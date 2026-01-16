@@ -349,7 +349,7 @@ with st.sidebar:
     if st.button("� Chat Assistant", use_container_width=True, key="nav_chat"):
         st.session_state.page_selector = "💬 Chat Assistant"
     
-    if st.button("�📋 Question Generator", use_container_width=True, key="nav_questions"):
+    if st.button("� Question Generator", use_container_width=True, key="nav_questions"):
         st.session_state.page_selector = "📋 Question Generator"
     
     # Status section
@@ -460,18 +460,56 @@ if page == "📋 Question Generator":
             ])
             
             include_rag = st.checkbox("Include RAG context from database", value=True)
+            
+            # Temperature slider for creativity
+            temperature = st.slider(
+                "Creativity (Temperature):",
+                min_value=0.1,
+                max_value=2.0,
+                value=0.7,
+                step=0.1,
+                help="Higher values = more creative, lower values = more focused"
+            )
+            
+            # Output format option
+            output_format = st.selectbox(
+                "Output Format:",
+                options=["Standard", "JSON", "Detailed"],
+                help="Choose how questions are formatted in the output"
+            )
+            
+            custom_prompt = st.text_area(
+                "🔍 Custom Prompt (Optional)",
+                value="",
+                height=100,
+                help="Enter a custom prompt for question generation. Leave empty to use default settings.",
+                placeholder="Example: Generate questions about implementation challenges and ROI for enterprise clients..."
+            )
         
         with col2:
             st.info("""
-            **Features Available:**
+            **Advanced Features Available:**
             - ✅ Real LLM grading (not proxy scores)
             - ✅ Real groundedness calculation
             - ✅ Answer metrics included
             - ✅ NLP-based specificity
             - ✅ Semantic similarity scoring
+            - ✅ Temperature control for creativity
+            - ✅ JSON output format option
             - ✅ Amazon Rufus style display
             - ✅ Direct chat redirection
             """)
+            
+            # JSON Generator Info
+            if output_format == "JSON":
+                st.success("""
+                📋 **JSON Mode Enabled**
+                Questions will be generated in structured JSON format with:
+                - Question text
+                - Answer text  
+                - Metrics data
+                - Source information
+                """)
     
     # Generate Questions Button
     col1, col2, col3 = st.columns([1, 2, 1])
@@ -495,7 +533,10 @@ if page == "📋 Question Generator":
                             "num_questions": target_count,
                             "question_type": question_type,
                             "difficulty": difficulty,
-                            "include_rag": include_rag
+                            "include_rag": include_rag,
+                            "temperature": temperature,
+                            "output_format": output_format.lower(),
+                            "custom_prompt": custom_prompt if custom_prompt.strip() else None
                         },
                         timeout=300
                     )
@@ -503,117 +544,278 @@ if page == "📋 Question Generator":
                     if response.status_code == 200:
                         result = response.json()
                         
-                        # Store results
-                        st.session_state.question_gen_results = result
-                        st.success(f"✅ Generated {len(result.get('questions', []))} questions successfully!")
-                        
-                        # Display questions with Amazon Rufus style
-                        questions = result.get('questions', [])
-                        
-                        for i, question_data in enumerate(questions, 1):
-                            # Extract question data
-                            question_raw = question_data.get("question", "")
-                            question = str(question_raw).strip().strip('"\'')
-                            
-                            metrics = question_data.get("metrics", {})
-                            answer_metrics = question_data.get("answer_metrics", {})
-                            sources = question_data.get("retrieved_sources", 0)
-                            
-                            # Calculate overall scores
-                            q_score = metrics.get("overall_score", 0) * 100
-                            a_score = answer_metrics.get("overall_score", 0) * 100
-                            
-                            # Generate topic name from source chunks
-                            topic_name = "Generated Q&A"
-                            if sources and len(sources) > 0:
-                                first_source = sources[0]
-                                if first_source.get('metadata'):
-                                    topic_name = first_source['metadata'].get('dataset', 'Generated Q&A')
-                            
-                            # Beautiful question card with chat redirection
-                            st.markdown(f"""
-                            <div class="glass-card">
-                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
-                                    <h4 style="margin: 0;">Question {topic_name} - Question {i}</h4>
-                                    <div style="display: flex; gap: 1rem;">
-                                        <span style="background: #4CAF50; color: white; padding: 0.25rem 0.5rem; border-radius: 10px; font-size: 0.8rem;">Q: {q_score:.0f}%</span>
-                                        <span style="background: #2196F3; color: white; padding: 0.25rem 0.5rem; border-radius: 10px; font-size: 0.8rem;">A: {a_score:.0f}%</span>
-                                    </div>
-                                </div>
-                                
-                                <p style="font-size: 1.1rem; margin-bottom: 1rem;">{question}</p>
-                                
-                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
-                                    <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);">
-                                        <h5 style="margin: 0 0 0.5rem 0; color: #667eea;">Metrics</h5>
-                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                                            <div>
-                                                <strong>Sources:</strong> {sources}
-                                            </div>
-                                            <div>
-                                                <strong>Coverage:</strong> {metrics.get('coverage_final', 0)*100:.0f}%
-                                            </div>
-                                            <div>
-                                                <strong>Specificity:</strong> {metrics.get('specificity_final', 0)*100:.0f}%
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);">
-                                        <h5 style="margin: 0 0 0.5rem 0; color: #2196F3;">Answer Metrics</h5>
-                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                                            <div>
-                                                <strong>Insightfulness:</strong> {answer_metrics.get('insightfulness_final', 0)*100:.0f}%
-                                            </div>
-                                            <div>
-                                                <strong>Groundedness:</strong> {answer_metrics.get('groundedness_final', 0)*100:.0f}%
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div style="text-align: center; margin-top: 1rem;">
-                                    <button class="aesthetic-btn" onclick="window.location.reload()">
-                                        💬 Chat About This Question
-                                    </button>
-                                </div>
-                            </div>
-                            """, unsafe_allow_html=True)
-                    
-                            # Store question for chat redirection
-                            st.session_state[f"selected_question_{i}"] = {
-                                "question": question,
-                                "answer": question_data.get("answer", ""),
-                                "metrics": metrics,
-                                "answer_metrics": answer_metrics,
-                                "sources": sources,
-                                "topic_name": topic_name
+                        if result.get("status") == "success":
+                            # Store results exactly like cuspera_working.py
+                            st.session_state.question_gen_results = {
+                                "questions": result.get("questions", []),
+                                "metrics": result.get("metrics", {}),
+                                "product": target_product,
+                                "target_count": target_count
                             }
-                    
-                    st.divider()
-                    
-                    # Display chat redirection message
-                    st.markdown("""
-                    <div class="glass-card">
-                        <h3>🎯 Questions Ready for Chat!</h3>
-                        <p>Click on any question above to start a detailed conversation about it in the chat assistant.</p>
-                        <p>The AI assistant will have access to all the metrics, sources, and context for that specific question.</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    # Add button to switch to chat
-                    if st.button("💬 Go to Chat Assistant", type="primary", use_container_width=True):
-                        st.session_state.page_selector = "💬 Chat Assistant"
-                        st.rerun()
-                    
+                            st.success(f"✅ Generated {len(result.get('questions', []))} questions successfully!")
+                            st.rerun()
+                        else:
+                            st.error(f"❌ Error: {result.get('error', 'Unknown error')}")
                     else:
                         st.error(f"❌ API Error: {response.status_code}")
-                    
+                        
                 except requests.exceptions.RequestException as e:
                     st.error(f"❌ Connection error: {str(e)}")
                 
                 except Exception as e:
                     st.error(f"❌ Error: {str(e)}")
+
+    # Display Results - exactly like cuspera_working.py
+    if st.session_state.question_gen_results:
+        results = st.session_state.question_gen_results
+        metrics = results.get("metrics", {})
+        product_name = results.get('product', 'Unknown Product')
+        
+        st.markdown(f"### 🎯 Generation Results for {product_name}")
+        
+        # Top-level metrics
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Questions Generated", len(results.get("questions", [])))
+        with col2:
+            st.metric("Avg Question Score", f"{metrics.get('overall_q_avg', 0)*100:.1f}%")
+        with col3:
+            st.metric("Avg Answer Score", f"{metrics.get('overall_a_avg', 0)*100:.1f}%")
+        with col4:
+            st.metric("Total Sources", metrics.get('total_sources', 0))
+        
+        # Radar chart comparison
+        try:
+            fig = go.Figure()
+            
+            categories = ['Coverage', 'Specificity', 'Insightfulness', 'Groundedness']
+            
+            fig.add_trace(go.Scatterpolar(
+                r=[
+                    metrics.get('coverage_q_avg', 0),
+                    metrics.get('specificity_q_avg', 0),
+                    metrics.get('insightfulness_q_avg', 0),
+                    metrics.get('groundedness_q_avg', 0)
+                ],
+                theta=categories,
+                fill='toself',
+                name='Questions',
+                line_color='#00d4ff'
+            ))
+            
+            fig.add_trace(go.Scatterpolar(
+                r=[
+                    metrics.get('coverage_a_avg', 0),
+                    metrics.get('specificity_a_avg', 0),
+                    metrics.get('insightfulness_a_avg', 0),
+                    metrics.get('groundedness_a_avg', 0)
+                ],
+                theta=categories,
+                fill='toself',
+                name='Answers',
+                line_color='#ff6b6b'
+            ))
+            
+            fig.update_layout(
+                polar=dict(
+                    radialaxis=dict(
+                        visible=True,
+                        range=[0, 1]
+                    )),
+                showlegend=True,
+                title="Question vs Answer Performance"
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+            
+        except Exception as e:
+            st.error(f"Chart generation failed: {e}")
+        
+        # Detailed Q&A table - exactly like cuspera_working.py
+        st.markdown("### 📋 Detailed Question & Answer Metrics")
+        
+        # Display Q&A pairs with expanders for full text
+        for i, q in enumerate(results.get("questions", []), 1):
+            q_metrics = q.get("metrics", {})
+            a_metrics = q.get("answer_metrics", {})
+            
+            with st.expander(f"**Q{i}:** {q.get('question', '')[:80]}{'...' if len(q.get('question', '')) > 80 else ''}", expanded=False):
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown("##### 📝 Question")
+                    st.info(q.get("question", ""))
+                    
+                    st.markdown("##### 📊 Question Metrics")
+                    q_metrics_df = pd.DataFrame({
+                        "Metric": ["Coverage", "Specificity", "Insightfulness", "Groundedness", "Overall"],
+                        "Score": [
+                            f"{q_metrics.get('coverage_final', 0)*100:.1f}%",
+                            f"{q_metrics.get('specificity_final', 0)*100:.1f}%",
+                            f"{q_metrics.get('insightfulness_final', 0)*100:.1f}%",
+                            f"{q_metrics.get('groundedness_final', 0)*100:.1f}%",
+                            f"{q_metrics.get('overall_score', 0)*100:.1f}%"
+                        ],
+                        "Pass": ["—", "—", "—", "—", "✅" if q_metrics.get("overall_pass") else "❌"]
+                    })
+                    st.dataframe(q_metrics_df, use_container_width=True, hide_index=True)
+                
+                with col2:
+                    st.markdown("##### 💬 Answer")
+                    st.markdown(f"""
+                    <div style="background: linear-gradient(135deg, #1a1a2e 0%, #0f0f23 100%); 
+                                border: 1px solid #00d4ff; border-radius: 8px; padding: 1rem; margin: 0.5rem 0;">
+                        <p style="color: white; font-size: 1rem; line-height: 1.5;">
+                            {q.get("answer", "")}
+                        </p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    st.markdown("##### 📊 Answer Metrics")
+                    a_metrics_df = pd.DataFrame({
+                        "Metric": ["Coverage", "Specificity", "Insightfulness", "Groundedness", "Overall"],
+                        "Score": [
+                            f"{a_metrics.get('coverage_final', 0)*100:.1f}%",
+                            f"{a_metrics.get('specificity_final', 0)*100:.1f}%",
+                            f"{a_metrics.get('insightfulness_final', 0)*100:.1f}%",
+                            f"{a_metrics.get('groundedness_final', 0)*100:.1f}%",
+                            f"{a_metrics.get('overall_score', 0)*100:.1f}%"
+                        ],
+                        "Pass": ["—", "—", "—", "—", "✅" if a_metrics.get("overall_pass") else "❌"]
+                    })
+                    st.dataframe(a_metrics_df, use_container_width=True, hide_index=True)
+                
+                st.markdown(f"**📚 Sources Retrieved:** {q.get('retrieved_sources', 0)}")
+                st.markdown(f"**🔗 Context Source:** {q.get('context_source', '')}")
+                
+                # Display sources if available
+                sources = q.get('sources', [])
+                if sources:
+                    st.markdown("##### 📚 Source Documents")
+                    for j, source in enumerate(sources[:3], 1):
+                        st.write(f"**Source {j}:**")
+                        st.write(f"• **Content:** {source.get('content', 'N/A')}")
+                        st.write(f"• **Similarity Score:** {source.get('score', 0):.2f}")
+                        
+                        # Show metadata
+                        if source.get('metadata'):
+                            st.write("• **Metadata:**")
+                            metadata = source['metadata']
+                            
+                            if metadata.get('source_file'):
+                                st.write(f"  - **Document:** {metadata['source_file']}")
+                            if metadata.get('dataset'):
+                                st.write(f"  - **Dataset:** {metadata['dataset']}")
+                            if metadata.get('content_type'):
+                                st.write(f"  - **Type:** {metadata['content_type']}")
+                            if metadata.get('id'):
+                                st.write(f"  - **ID:** {metadata['id']}")
+                
+                st.markdown("---")
+        
+        # Export options
+        st.markdown("### 📤 Export Options")
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            # CSV Export
+            if st.button("� Download CSV", use_container_width=True):
+                try:
+                    import pandas as pd
+                    from datetime import datetime
+                    
+                    # Create DataFrame for export
+                    export_data = []
+                    for i, q in enumerate(results.get("questions", []), 1):
+                        q_m = q.get("metrics", {})
+                        a_m = q.get("answer_metrics", {})
+                        export_data.append({
+                            "ID": i,
+                            "Question": q.get("question", ""),
+                            "Answer": q.get("answer", ""),
+                            "Context_Source": q.get("context_source", ""),
+                            "Retrieved_Sources": q.get("retrieved_sources", 0),
+                            "Q_Overall_Score": q_m.get("overall_score", 0),
+                            "Q_Coverage": q_m.get("coverage_final", 0),
+                            "Q_Specificity": q_m.get("specificity_final", 0),
+                            "Q_Insightfulness": q_m.get("insightfulness_final", 0),
+                            "Q_Groundedness": q_m.get("groundedness_final", 0),
+                            "Q_Pass": q_m.get("overall_pass", False),
+                            "A_Overall_Score": a_m.get("overall_score", 0),
+                            "A_Coverage": a_m.get("coverage_final", 0),
+                            "A_Specificity": a_m.get("specificity_final", 0),
+                            "A_Insightfulness": a_m.get("insightfulness_final", 0),
+                            "A_Groundedness": a_m.get("groundedness_final", 0),
+                            "A_Pass": a_m.get("overall_pass", False)
+                        })
+                    
+                    df = pd.DataFrame(export_data)
+                    csv_data = df.to_csv(index=False)
+                    
+                    st.download_button(
+                        label="📥 Download CSV",
+                        data=csv_data,
+                        file_name=f"qa_{product_name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+                        mime="text/csv"
+                    )
+                    
+                except Exception as e:
+                    st.error(f"CSV generation failed: {str(e)}")
+        
+        with col2:
+            # FAQ Export - exactly like cuspera_working.py
+            if st.button("📋 Generate FAQ Format", use_container_width=True):
+                try:
+                    faq_data = []
+                    for i, q in enumerate(results.get("questions", []), 1):
+                        q_m = q.get("metrics", {})
+                        a_m = q.get("answer_metrics", {})
+                        
+                        # Create FAQ entry with exact structure from cuspera_working.py
+                        faq_entry = {
+                            "question": q.get("question", ""),
+                            "answer": q.get("answer", ""),
+                            "section": "General",  # Can be customized
+                            "context": [
+                                {
+                                    "name": q.get("topic_name", "6sense Analytics"),  # Use generated topic
+                                    "code": f"Q_{i}",
+                                    "type": "capability",
+                                    "score": q_m.get("overall_score", 0)
+                                }
+                            ],
+                            "evidence": q.get("enhanced_evidence", [
+                                {
+                                    "link": f"#question_{i}",
+                                    "type": "generated",
+                                    "score": q_m.get("groundedness_final", 0)
+                                }
+                            ])
+                        }
+                        faq_data.append(faq_entry)
+                    
+                    # Convert to JSON and provide download - exactly like cuspera_working.py
+                    faq_json = json.dumps(faq_data, indent=2)
+                    st.download_button(
+                        label="📋 Download FAQ JSON",
+                        data=faq_json,
+                        file_name=f"faq_{product_name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M')}.json",
+                        mime="application/json"
+                    )
+                    
+                except Exception as e:
+                    st.error(f"FAQ generation failed: {str(e)}")
+        
+        with col3:
+            if st.button("💬 Go to Chat Assistant", type="primary", use_container_width=True):
+                st.session_state.page_selector = "💬 Chat Assistant"
+                st.rerun()
+            
+            if st.button("🔄 Generate New Questions", use_container_width=True):
+                if 'question_gen_results' in st.session_state:
+                    del st.session_state.question_gen_results
+                st.rerun()
 
 else:  # Chat Assistant page
     # Check if we have selected questions from question generator
