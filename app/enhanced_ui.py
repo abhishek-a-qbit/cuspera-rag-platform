@@ -602,11 +602,34 @@ if st.session_state.page == 'chat':
                         with col4:
                             st.metric(" Groundedness", f"{response_data['metrics'].get('groundedness_final', 0)*100:.0f}%")
         
-        # Regular chat interface
-        st.markdown("###  Direct Chat")
+        # Check backend status
+        try:
+            backend_response = requests.get("http://localhost:8001/", timeout=3)
+            if backend_response.status_code == 200:
+                backend_status = "🟢 Online"
+                backend_color = "#4CAF50"
+            else:
+                backend_status = "🔴 Error"
+                backend_color = "#f44336"
+        except:
+            backend_status = "🔴 Offline"
+            backend_color = "#f44336"
         
-        # Chat container
+        # Display backend status
+        st.markdown(f"""
+        <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-weight: bold;">Backend Status:</span>
+                <span style="color: {backend_color}; font-weight: bold;">{backend_status}</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Chat container - moved to top
         st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+        
+        # Chat history header
+        st.markdown("### 📜 Chat History")
         
         # Display messages
         for message in st.session_state.messages:
@@ -670,38 +693,26 @@ if st.session_state.page == 'chat':
         
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # Input area
-        st.markdown('<div class="input-container">', unsafe_allow_html=True)
+        st.markdown("---")
         
-        # Handle quick actions
-        user_input = ""
-        if hasattr(st.session_state, 'last_intent'):
-            if st.session_state.last_intent == "analytics":
-                user_input = "Generate a comprehensive analytics report for 6sense performance with RAG context"
-            elif st.session_state.last_intent == "roi":
-                user_input = "Calculate the ROI for implementing 6sense Revenue AI platform with real data"
-            elif st.session_state.last_intent == "dashboard":
-                user_input = "Create an interactive dashboard showing 6sense metrics and KPIs with RAG context"
-            elif st.session_state.last_intent == "infographic":
-                user_input = "Generate an infographic showing 6sense impact and key statistics with RAG context"
-            
-            del st.session_state.last_intent
+        # Regular chat interface
+        st.markdown("### 💬 Direct Chat")
+        st.markdown("Ask me anything about the data, analytics, or request visualizations...")
         
-        # Text input
-        user_input = st.text_input(
-            "Ask me anything about 6sense, analytics, ROI, or visualizations...",
-            value=user_input,
-            key="user_input",
-            placeholder="e.g., 'Generate analytics report', 'Calculate ROI', 'Create dashboard', 'What are 6sense features?'"
-        )
-        
+        # Chat input
         col1, col2 = st.columns([4, 1])
         with col1:
-            send_button = st.button(" Send", type="primary", use_container_width=True)
+            user_input = st.text_input(
+                "Your message:",
+                placeholder="What would you like to know?",
+                key="chat_input",
+                label_visibility="collapsed"
+            )
         with col2:
-            clear_button = st.button(" Clear", use_container_width=True)
+            send_button = st.button(" Send", type="primary", use_container_width=True)
         
-        st.markdown('</div>', unsafe_allow_html=True)
+        # Clear button below input
+        clear_button = st.button(" Clear Chat History", use_container_width=True)
         
         # Clear chat history
         if clear_button:
@@ -720,127 +731,143 @@ if st.session_state.page == 'chat':
             
             # Get response from agent
             try:
-                response = requests.post(
-                    "http://localhost:8001/advanced-chat",
-                    json={
-                        "message": user_input,
-                        "session_id": st.session_state.session_id
-                    },
-                    timeout=30
-                )
+                # First check if backend is available
+                backend_check = requests.get("http://localhost:8001/", timeout=5)
                 
-                if response.status_code == 200:
-                    result = response.json()
-                    ai_response = result.get('response', 'Sorry, I couldn\'t process that request.')
-                    sources = result.get('sources', [])
-                    metrics = result.get('metrics', {})
-                    tools_used = result.get('tools_used', [])
-                    
-                    # Store response with full metadata
-                    st.session_state.messages.append({
-                        'role': 'assistant', 
-                        'content': ai_response,
-                        'sources': sources,
-                        'metrics': metrics,
-                        'tools_used': tools_used,
-                        'timestamp': datetime.now()
-                    })
-                    
-                    # Handle dashboard generation
-                    if 'dashboard_generation' in tools_used:
-                        st.success(' Dashboard code generated successfully!')
-                        
-                        # Display metrics and sources first
-                        if metrics:
-                            st.markdown("###  Response Metrics")
-                            col1, col2, col3, col4 = st.columns(4)
-                            with col1:
-                                st.metric(" Overall", f"{metrics.get('overall_score', 0)*100:.0f}%")
-                            with col2:
-                                st.metric(" Coverage", f"{metrics.get('coverage_final', 0)*100:.0f}%")
-                            with col3:
-                                st.metric(" Specificity", f"{metrics.get('specificity_final', 0)*100:.0f}%")
-                            with col4:
-                                st.metric(" Insightfulness", f"{metrics.get('insightfulness_final', 0)*100:.0f}%")
-                        
-                        if sources:
-                            st.markdown("###  Source Documents")
-                            for j, source in enumerate(sources[:3], 1):
-                                st.write(f"**Source {j}:**")
-                                st.write(f"• **Content:** {source.get('content', 'N/A')}")
-                                st.write(f"• **Similarity Score:** {source.get('score', 0):.2f}")
-                                
-                                # Show metadata
-                                if source.get('metadata'):
-                                    st.write("• **Metadata:**")
-                                    st.json(source['metadata'])
-                        
-                        # Extract and clean dashboard code
-                        dashboard_code = ai_response.strip()
-                        
-                        # Remove any leading/trailing quotes and clean
-                        if '```python' in dashboard_code:
-                            dashboard_code = dashboard_code.split('```python')[1].split('```')[0]
-                        elif '```' in dashboard_code:
-                            dashboard_code = dashboard_code.split('```')[1].split('```')[0]
-                        
-                        # Remove problematic patterns
-                        dashboard_code = dashboard_code.strip().strip('"\'')
-                        dashboard_code = dashboard_code.replace('st.set_page_config(', '# st.set_page_config(')
-                        dashboard_code = dashboard_code.replace('"""', '')
-                        
-                        # Display in canvas
-                        st.markdown("###  Generated Dashboard")
-                        st.markdown("""
-                        <div class="canvas-container">
-                            <div class="canvas-header">
-                                <div class="canvas-title">
-                                     Generated Dashboard
-                                </div>
-                                <div class="canvas-actions">
-                                    <button class="canvas-btn" onclick="window.location.reload()"> Refresh</button>
-                                    <button class="canvas-btn" onclick="window.print()"> Print</button>
-                                </div>
-                            </div>
-                            <div class="canvas-content">
-                        </div>
-                        """, unsafe_allow_html=True)
-                        
-                        try:
-                            # Create a safe execution environment
-                            exec_globals = {
-                                'st': st,
-                                'pd': pd,
-                                'px': px,
-                                'go': go,
-                                'np': np,
-                                'datetime': datetime,
-                                'base64': base64
-                            }
-                            
-                            # Execute the dashboard code
-                            exec(dashboard_code, exec_globals)
-                            st.success(" Dashboard executed successfully!")
-                            
-                        except Exception as e:
-                            st.error(f" Dashboard execution failed: {e}")
-                            st.write("This might be due to missing dependencies or incompatible Streamlit components.")
-                            
-                            # Show the problematic code for debugging
-                            with st.expander(" Debug - Generated Code"):
-                                st.code(dashboard_code, language='python')
-                
-                else:
+                if backend_check.status_code != 200:
                     st.session_state.messages.append({
                         'role': 'assistant',
-                        'content': f"Error: Backend service unavailable (Status: {response.status_code})",
+                        'content': "Backend service is not responding properly. Please check if the backend server is running on localhost:8001.",
                         'timestamp': datetime.now()
                     })
-            
+                else:
+                    response = requests.post(
+                        "http://localhost:8001/advanced-chat",
+                        json={
+                            "message": user_input,
+                            "session_id": st.session_state.session_id
+                        },
+                        timeout=30
+                    )
+                    
+                    if response.status_code == 200:
+                        result = response.json()
+                        ai_response = result.get('response', 'Sorry, I couldn\'t process that request.')
+                        sources = result.get('sources', [])
+                        metrics = result.get('metrics', {})
+                        tools_used = result.get('tools_used', [])
+                        
+                        # Store response with full metadata
+                        st.session_state.messages.append({
+                            'role': 'assistant', 
+                            'content': ai_response,
+                            'sources': sources,
+                            'metrics': metrics,
+                            'tools_used': tools_used,
+                            'timestamp': datetime.now()
+                        })
+                        
+                        # Handle dashboard generation
+                        if 'dashboard_generation' in tools_used:
+                            st.success(' Dashboard code generated successfully!')
+                            
+                            # Display metrics and sources first
+                            if metrics:
+                                st.markdown("###  Response Metrics")
+                                col1, col2, col3, col4 = st.columns(4)
+                                with col1:
+                                    st.metric(" Overall", f"{metrics.get('overall_score', 0)*100:.0f}%")
+                                with col2:
+                                    st.metric(" Coverage", f"{metrics.get('coverage_final', 0)*100:.0f}%")
+                                with col3:
+                                    st.metric(" Specificity", f"{metrics.get('specificity_final', 0)*100:.0f}%")
+                                with col4:
+                                    st.metric(" Insightfulness", f"{metrics.get('insightfulness_final', 0)*100:.0f}%")
+                            
+                            if sources:
+                                st.markdown("###  Source Documents")
+                                for j, source in enumerate(sources[:3], 1):
+                                    st.write(f"**Source {j}:**")
+                                    st.write(f"• **Content:** {source.get('content', 'N/A')}")
+                                    st.write(f"• **Similarity Score:** {source.get('score', 0):.2f}")
+                                    
+                                    # Show metadata
+                                    if source.get('metadata'):
+                                        st.write("• **Metadata:**")
+                                        st.json(source['metadata'])
+                            
+                            # Extract and clean dashboard code
+                            dashboard_code = ai_response.strip()
+                            
+                            # Remove any leading/trailing quotes and clean
+                            if '```python' in dashboard_code:
+                                dashboard_code = dashboard_code.split('```python')[1].split('```')[0]
+                            elif '```' in dashboard_code:
+                                dashboard_code = dashboard_code.split('```')[1].split('```')[0]
+                            
+                            # Remove problematic patterns
+                            dashboard_code = dashboard_code.strip().strip('"\'')
+                            dashboard_code = dashboard_code.replace('st.set_page_config(', '# st.set_page_config(')
+                            dashboard_code = dashboard_code.replace('"""', '')
+                            
+                            # Display in canvas
+                            st.markdown("###  Generated Dashboard")
+                            st.markdown("""
+                            <div class="canvas-container">
+                                <div class="canvas-header">
+                                    <div class="canvas-title">
+                                         Generated Dashboard
+                                    </div>
+                                    <div class="canvas-actions">
+                                        <button class="canvas-btn" onclick="window.location.reload()"> Refresh</button>
+                                        <button class="canvas-btn" onclick="window.print()"> Print</button>
+                                    </div>
+                                </div>
+                                <div class="canvas-content">
+                            </div>
+                            """, unsafe_allow_html=True)
+                            
+                            try:
+                                # Create a safe execution environment
+                                exec_globals = {
+                                    'st': st,
+                                    'pd': pd,
+                                    'px': px,
+                                    'go': go,
+                                    'np': np,
+                                    'datetime': datetime,
+                                    'base64': base64
+                                }
+                                
+                                # Execute the dashboard code
+                                exec(dashboard_code, exec_globals)
+                                st.success(" Dashboard executed successfully!")
+                                
+                            except Exception as e:
+                                st.error(f" Dashboard execution failed: {e}")
+                                st.write("This might be due to missing dependencies or incompatible Streamlit components.")
+                                
+                                # Show the problematic code for debugging
+                                with st.expander(" Debug - Generated Code"):
+                                    st.code(dashboard_code, language='python')
+                    
+                    else:
+                        st.session_state.messages.append({
+                            'role': 'assistant',
+                            'content': f"Backend service returned error: {response.status_code}. Please check the backend logs.",
+                            'timestamp': datetime.now()
+                        })
+                        
             except requests.exceptions.RequestException as e:
                 st.session_state.messages.append({
                     'role': 'assistant',
-                    'content': f"Connection error: Unable to reach the backend service. Please ensure the backend is running on localhost:8001",
+                    'content': f"Connection error: Unable to reach the backend service. Please ensure the backend is running on localhost:8001. Error: {str(e)}",
+                    'timestamp': datetime.now()
+                })
+            except Exception as e:
+                st.session_state.messages.append({
+                    'role': 'assistant',
+                    'content': f"Unexpected error: {str(e)}",
                     'timestamp': datetime.now()
                 })
             
@@ -1061,170 +1088,10 @@ elif st.session_state.page == 'questions':
                             </div>
                             """, unsafe_allow_html=True)
                     
-                    # Display questions with Amazon Rufus style
-                    questions = result.get('questions', [])
-                    
-                    for i, question_data in enumerate(questions, 1):
-                        # Extract question data
-                        question_raw = question_data.get("question", "")
-                        question = str(question_raw).strip().strip('"\'')
-                        
-                        metrics = question_data.get("metrics", {})
-                        answer_metrics = question_data.get("answer_metrics", {})
-                        sources = question_data.get("retrieved_sources", 0)
-                        
-                        # Calculate overall scores
-                        q_score = metrics.get("overall_score", 0) * 100
-                        a_score = answer_metrics.get("overall_score", 0) * 100
-                        
-                        # Generate topic name from source chunks
-                        topic_name = "Generated Q&A"
-                        if sources and len(sources) > 0:
-                            first_source = sources[0]
-                            if first_source.get('metadata'):
-                                topic_name = first_source['metadata'].get('dataset', 'Generated Q&A')
-                        
-                        # Beautiful question card
-                        st.markdown(f"""
-                        <div class="glass-card">
-                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
-                                <h4 style="margin: 0;">Question {topic_name} - Question {i}</h4>
-                                <div style="display: flex; gap: 1rem;">
-                                    <span style="background: #4CAF50; color: white; padding: 0.25rem 0.5rem; border-radius: 10px; font-size: 0.8rem;">Q: {q_score:.0f}%</span>
-                                    <span style="background: #2196F3; color: white; padding: 0.25rem 0.5rem; border-radius: 10px; font-size: 0.8rem;"> A: {a_score:.0f}%</span>
-                                </div>
-                            </div>
-                            
-                            <p style="font-size: 1.1rem; margin-bottom: 1rem;">{question}</p>
-                            
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
-                                <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);">
-                                    <h5 style="margin: 0 0 0.5rem 0; color: #667eea;"> Metrics</h5>
-                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                                        <div>
-                                            <strong> Sources:</strong> {sources}
-                                        </div>
-                                        <div>
-                                            <strong> Coverage:</strong> {metrics.get('coverage_final', 0)*100:.0f}%
-                                        </div>
-                                        <div>
-                                            <strong> Specificity:</strong> {metrics.get('specificity_final', 0)*100:.0f}%
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);">
-                                    <h5 style="margin: 0 0 0.5rem 0; color: #2196F3;">Answer Metrics</h5>
-                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                                        <div>
-                                            <strong> Insightfulness:</strong> {answer_metrics.get('insightfulness_final', 0)*100:.0f}%
-                                        </div>
-                                        <div>
-                                            <strong> Groundedness:</strong> {answer_metrics.get('groundedness_final', 0)*100:.0f}%
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div style="text-align: center; margin-top: 1rem;">
-                                <button class="aesthetic-btn" onclick="window.location.reload()">
-                                     Chat About This Question
-                                </button>
-                            </div>
-                        </div>
-            
-            if response.status_code == 200:
-                result = response.json()
-                st.session_state.question_gen_results = result
-                
-                # Display generated questions
-                st.success(f" Generated {len(result.get('questions', []))} questions successfully!")
-                
-                # Display questions with Amazon Rufus style
-                questions = result.get('questions', [])
-                
-                for i, question_data in enumerate(questions, 1):
-                    # Extract question data
-                    question_raw = question_data.get("question", "")
-                    question = str(question_raw).strip().strip('"\'')
-                    
-                    metrics = question_data.get("metrics", {})
-                    answer_metrics = question_data.get("answer_metrics", {})
-                    sources = question_data.get("retrieved_sources", 0)
-                    
-                    # Calculate overall scores
-                    q_score = metrics.get("overall_score", 0) * 100
-                    a_score = answer_metrics.get("overall_score", 0) * 100
-                    
-                    # Generate topic name from source chunks
-                    topic_name = "Generated Q&A"
-                    if sources and len(sources) > 0:
-                        first_source = sources[0]
-                        if first_source.get('metadata'):
-                            topic_name = first_source['metadata'].get('dataset', 'Generated Q&A')
-                    
-                    # Beautiful question card
-                    html_content = """
-                    <div class="glass-card">
-                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
-                            <h4 style="margin: 0;">Question """ + topic_name + """ - Question """ + str(i) + """</h4></strong>
-                            <div style="display: flex; gap: 1rem;">
-                                <span style="background: #4CAF50; color: white; padding: 0.25rem 0.5rem; border-radius: 10px; font-size: 0.8rem;">Q: """ + str(q_score) + """%</span></strong>
-                                <span style="background: #2196F3; color: white; padding: 0.25rem 0.5rem; border-radius: 10px; font-size: 0.8rem;">A: """ + str(a_score) + """%</span></strong>
-                            </div>
-                        </div>
-                        
-                        <p style="font-size: 1.1rem; margin-bottom: 1rem;">""" + question + """</p></strong>
-                        
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
-                            <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);">
-                                <h5 style="margin: 0 0 0.5rem 0; color: #667eea;">Metrics</h5>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                                    <div>
-                                        <strong>Sources:</strong> """ + str(sources) + """</strong>
-                                    </div>
-                                    <div>
-                                        <strong>Coverage:</strong> """ + str(metrics.get('coverage_final', 0)*100) + """%</strong>
-                                    </div>
-                                    <div>
-                                        <strong>Specificity:</strong> """ + str(metrics.get('specificity_final', 0)*100) + """%</strong>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);">
-                                <h5 style="margin: 0 0 0.5rem 0; color: #2196F3;">Answer Metrics</h5>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                                    <div>
-                                        <strong>Insightfulness:</strong> """ + str(answer_metrics.get('insightfulness_final', 0)*100) + """%</strong>
-                                    </div>
-                                    <div>
-                                        <strong>Groundedness:</strong> """ + str(answer_metrics.get('groundedness_final', 0)*100) + """%</strong>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div style="text-align: center; margin-top: 1rem;">
-                            <button class="aesthetic-btn" onclick="window.location.reload()">
-                                Chat About This Question
-                            </button>
-                        </div>
-                    </div>
-                    """
-                    st.markdown(html_content, unsafe_allow_html=True)
-                    
                     st.divider()
             
-            else:
-                st.error(f"Failed to generate questions: {response.status_code}")
-        
-        except requests.exceptions.RequestException as e:
-            st.error(f"Connection error: {str(e)}")
-        
-        except Exception as e:
-            st.error(f"Error: {str(e)}")
-    
-else:
-    st.error("Invalid page. Please refresh the page.")
-    st.rerun()
+                except requests.exceptions.RequestException as e:
+                    st.error(f"Connection error: {str(e)}")
+            
+                except Exception as e:
+                    st.error(f"Error: {str(e)}")
