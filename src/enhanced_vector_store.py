@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from config import CHROMA_DB_PATH, COLLECTION_NAME, GOOGLE_API_KEY, OPENAI_API_KEY, USE_OPENAI_EMBEDDINGS, TOP_K_RETRIEVAL
+from config import CHROMA_DB_PATH, COLLECTION_NAME, GOOGLE_API_KEY, OPENAI_API_KEY, USE_OPENAI_EMBEDDINGS, TOP_K_RETRIEVAL, DIVERSITY_THRESHOLD
 from data_loader import create_searchable_text
 from hybrid_search import HybridSearcher
 
@@ -208,43 +208,126 @@ class EnhancedVectorStore:
         print("="*60)
     
     def retrieve(self, query: str, top_k: int = TOP_K_RETRIEVAL) -> List[Dict[str, Any]]:
-        """Enhanced retrieval with better filtering and ranking."""
+        """Enhanced retrieval with diversity and multiple search strategies."""
         if self.collection is None:
             self.load_collection()
         
         # Use hybrid search if enabled
         if self.use_hybrid and self.hybrid_searcher:
-            # Retrieve more candidates for hybrid ranking
-            candidate_k = min(top_k * 2, 20)
+            # Retrieve more candidates for diversity
+            candidate_k = min(top_k * 3, 30)  # Get 3x candidates for diversity
             hybrid_results = self.hybrid_searcher.hybrid_search(
                 query=query,
                 top_k=candidate_k
             )
             
-            # Format and return top_k results
-            return hybrid_results[:top_k]
+            # Apply diversity filtering and return top_k
+            diverse_results = self._apply_diversity_filtering(hybrid_results, top_k)
+            return diverse_results
         
-        # Enhanced semantic-only search
+        # Enhanced semantic-only search with diversity
         results = self.collection.query(
             query_texts=[query],
-            n_results=top_k,
+            n_results=top_k * 2,  # Get more candidates for diversity
             include=["documents", "metadatas", "distances"]
         )
         
-        # Format results with enhanced metadata
-        retrieved_docs = []
-        if results and results["ids"] and len(results["ids"][0]) > 0:
-            for idx, doc_id in enumerate(results["ids"][0]):
-                retrieved_docs.append({
-                    "id": doc_id,
-                    "content": results["documents"][0][idx],
-                    "metadata": results["metadatas"][0][idx],
-                    "distance": results["distances"][0][idx] if results["distances"] else None,
-                    "score": 1 - results["distances"][0][idx] if results["distances"] else 0,
-                    "search_type": "enhanced_semantic"
-                })
+        # Apply diversity filtering
+        diverse_results = self._apply_diversity_filtering_semantic(results, top_k)
+        return diverse_results
+    
+    def _apply_diversity_filtering(self, results: List[Dict], top_k: int) -> List[Dict]:
+        """Apply diversity filtering to ensure varied sources."""
+        if not results:
+            return []
         
-        return retrieved_docs
+        # Sort by score first
+        sorted_results = sorted(results, key=lambda x: x.get('score', 0), reverse=True)
+        
+        # Apply Maximal Marginal Relevance (MMR) for diversity
+        selected_results = []
+        remaining_results = sorted_results.copy()
+        
+        # Select first result (always include the best one)
+        if remaining_results:
+            selected_results.append(remaining_results.pop(0))
+        
+        # Select diverse remaining results
+        while len(selected_results) < top_k and remaining_results:
+            # Find result most different from selected ones
+            best_candidate = None
+            best_similarity = -1
+            
+            for candidate in remaining_results:
+                # Calculate similarity to already selected results
+                min_similarity = 1.0
+                for selected in selected_results:
+                    # Use content similarity (simplified)
+                    similarity = self._calculate_content_similarity(
+                        candidate.get('content', ''), 
+                        selected.get('content', '')
+                    )
+                    min_similarity = min(min_similarity, similarity)
+                
+                # Prefer diverse results
+                if min_similarity < DIVERSITY_THRESHOLD and len(selected_results) > 0:
+                    if best_candidate is None or min_similarity < best_similarity:
+                        best_candidate = candidate
+                        best_similarity = min_similarity
+            
+            if best_candidate:
+                selected_results.append(best_candidate)
+                remaining_results.remove(best_candidate)
+            else:
+                # Add next best if diversity threshold not met
+                if remaining_results:
+                    selected_results.append(remaining_results.pop(0))
+        
+        return selected_results[:top_k]
+    
+    def _apply_diversity_filtering_semantic(self, results: Dict, top_k: int) -> List[Dict]:
+        """Apply diversity filtering to semantic search results."""
+        if not results or not results.get("ids"):
+            return []
+        
+        retrieved_docs = []
+        ids = results["ids"][0]
+        documents = results["documents"][0]
+        metadatas = results["metadatas"][0]
+        distances = results["distances"][0] if results["distances"] else [0] * len(ids)
+        
+        # Create result objects
+        result_objects = []
+        for idx, doc_id in enumerate(ids):
+            result_objects.append({
+                "id": doc_id,
+                "content": documents[idx],
+                "metadata": metadatas[idx],
+                "distance": distances[idx],
+                "score": 1 - distances[idx] if distances[idx] is not None else 0,
+                "search_type": "enhanced_semantic_diverse"
+            })
+        
+        # Apply diversity filtering
+        diverse_results = self._apply_diversity_filtering(result_objects, top_k)
+        return diverse_results
+    
+    def _calculate_content_similarity(self, content1: str, content2: str) -> float:
+        """Calculate simple content similarity for diversity filtering."""
+        if not content1 or not content2:
+            return 0.0
+        
+        # Simple word overlap similarity
+        words1 = set(content1.lower().split())
+        words2 = set(content2.lower().split())
+        
+        intersection = words1.intersection(words2)
+        union = words1.union(words2)
+        
+        if not union:
+            return 0.0
+        
+        return len(intersection) / len(union)
     
     def get_collection_stats(self) -> Dict[str, Any]:
         """Get enhanced statistics about the collection."""

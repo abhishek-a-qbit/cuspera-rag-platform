@@ -10,7 +10,8 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 # Vector Store Configuration
 CHROMA_DB_PATH = "./chroma_db"
 COLLECTION_NAME = "cuspera_docs"
-TOP_K_RETRIEVAL = 5  # Reduced from 10 to save memory
+TOP_K_RETRIEVAL = 10  # Increased for better context coverage
+DIVERSITY_THRESHOLD = 0.7  # For diverse retrieval
 
 # Dataset Configuration
 # Handle different deployment environments

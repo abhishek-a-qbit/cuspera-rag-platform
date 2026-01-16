@@ -92,15 +92,23 @@ class DataDrivenQuestionGenerator:
                 # Calculate answer metrics
                 answer_metrics = self._calculate_answer_metrics(question, answer, context)
                 
+                # Generate meaningful topic from context
+                topic_name = self._generate_topic_name_simple(question, retrieved_docs)
+                
+                # Enhance source evidence with document links
+                enhanced_evidence = self._enhance_source_evidence_simple(question, retrieved_docs)
+                
                 questions.append({
                     "question": question,
                     "answer": answer,
                     "context_source": "RAG Graph Invoke",
                     "chunk_id": f"rag_generated_{i}",
-                    "reasoning": f"Generated using RAG graph with topic: {topic or '6sense'}",
+                    "reasoning": f"Generated using RAG graph with topic: {topic_name}",
                     "metrics": question_metrics,
                     "answer_metrics": answer_metrics,
-                    "retrieved_sources": len(retrieved_docs)
+                    "retrieved_sources": len(retrieved_docs),
+                    "topic_name": topic_name,  # Add generated topic
+                    "enhanced_evidence": enhanced_evidence  # Add enhanced evidence
                 })
                 
             except Exception as e:
@@ -110,6 +118,56 @@ class DataDrivenQuestionGenerator:
                 questions.append(fallback)
         
         return questions
+    
+    def _generate_topic_name_simple(self, question: str, retrieved_docs: List) -> str:
+        """Generate simple topic name from context."""
+        if not retrieved_docs:
+            return "6sense Analytics"
+        
+        # Extract keywords from question and documents
+        question_lower = question.lower()
+        doc_content = " ".join([doc.get('content', '')[:200] for doc in retrieved_docs[:2]])
+        combined_text = question_lower + " " + doc_content.lower()
+        
+        # Simple keyword-based topic generation
+        if "revenue" in combined_text and "ai" in combined_text:
+            return "Revenue AI Analytics"
+        elif "predictive" in combined_text and "analytics" in combined_text:
+            return "Predictive Analytics"
+        elif "integration" in combined_text:
+            return "Platform Integration"
+        elif "implementation" in combined_text:
+            return "Implementation Strategy"
+        elif "roi" in combined_text or "return" in combined_text:
+            return "ROI Analysis"
+        elif "features" in combined_text or "capabilities" in combined_text:
+            return "Platform Features"
+        else:
+            return "6sense Business Analytics"
+    
+    def _enhance_source_evidence_simple(self, question: str, retrieved_docs: List) -> List[Dict]:
+        """Simple enhancement of source evidence."""
+        enhanced_evidence = []
+        
+        for i, doc in enumerate(retrieved_docs):
+            metadata = doc.get('metadata', {})
+            doc_id = metadata.get('id', f'doc_{i}')
+            source_file = metadata.get('source', 'unknown')
+            content = doc.get('content', '')
+            
+            evidence_entry = {
+                "link": f"#document_{doc_id}",
+                "type": "retrieved",
+                "score": doc.get('score', 0.0),
+                "doc_id": doc_id,
+                "source_file": source_file,
+                "content_preview": content[:200] + "..." if len(content) > 200 else content,
+                "metadata": metadata
+            }
+            
+            enhanced_evidence.append(evidence_entry)
+        
+        return enhanced_evidence
     
     def _llm_grade_metric(self, text: str, metric_name: str, metric_type: str = "question") -> int:
         """Optimized LLM grading with simpler prompts to reduce timeouts."""
@@ -444,7 +502,7 @@ class DataDrivenQuestionGenerator:
     def _create_fallback_question(self, topic: str, index: int) -> Dict[str, Any]:
         """Create fallback question when RAG fails."""
         fallback_questions = [
-            "What are the key features of 6sense Revenue AI platform?",
+            "What are key features of 6sense Revenue AI platform?",
             "How does 6sense help companies identify in-market buyers?",
             "What predictive analytics capabilities does 6sense offer?",
             "How can companies implement 6sense effectively for B2B sales?",
@@ -453,9 +511,9 @@ class DataDrivenQuestionGenerator:
         
         if topic:
             fallback_questions = [
-                f"What are the key {topic} features of 6sense?",
+                f"What are key {topic} features of 6sense?",
                 f"How does {topic} help improve B2B sales and marketing?",
-                f"What are the best practices for implementing {topic} with 6sense?",
+                f"What are best practices for implementing {topic} with 6sense?",
                 f"How does {topic} compare to other revenue intelligence solutions?"
             ]
         
@@ -469,15 +527,11 @@ class DataDrivenQuestionGenerator:
             "reasoning": f"Generated using fallback template for topic: {topic or '6sense'}",
             "metrics": self._calculate_question_metrics(question),
             "answer_metrics": {},
-            "retrieved_sources": 0
+            "retrieved_sources": 0,
+            "topic_name": "6sense Analytics",  # Default topic for fallback
+            "enhanced_evidence": []  # No evidence for fallback
         }
-    
-    def _fallback_questions(self, topic: str, num_questions: int) -> List[Dict[str, Any]]:
-        """Generate fallback questions when RAG is not available."""
-        questions = []
-        for i in range(num_questions):
-            questions.append(self._create_fallback_question(topic, i))
-        return questions
+
 
 def generate_data_driven_questions(topic: str = None, num_questions: int = 10) -> List[Dict[str, Any]]:
     """Main function to generate questions using RAG graph."""

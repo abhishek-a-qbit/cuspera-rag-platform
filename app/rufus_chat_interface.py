@@ -287,7 +287,7 @@ def rufus_chat_interface():
     if st.session_state.chat_messages:
         st.subheader("📜 Chat History")
         
-        for msg in st.session_state.chat_messages[-5:]:  # Show last 5 messages
+        for msg_index, msg in enumerate(st.session_state.chat_messages[-5:]):  # Show last 5 messages
             if msg["type"] == "user":
                 st.write(f"**You:** {msg['message']}")
             else:
@@ -313,7 +313,7 @@ def rufus_chat_interface():
                             with col2:
                                 st.write("**📋 Content Preview:**")
                                 preview = content[:200] + "..." if len(content) > 200 else content
-                                st.text_area("", value=preview, height=100, disabled=True, label_visibility="collapsed")
+                                st.text_area("", value=preview, height=100, disabled=True, label_visibility="collapsed", key=f"preview_msg_{msg_index}_{i}_{doc_id[:8]}")
                 
                 # Show metrics if available
                 if msg.get("metrics") and msg["metrics"]:

@@ -26,3 +26,5 @@ numpy>=1.24.0
 
 # For better text processing
 nltk>=3.8.1
+
+matplotlib
