@@ -28,3 +28,5 @@ numpy>=1.24.0
 nltk>=3.8.1
 
 matplotlib
+
+seaborn

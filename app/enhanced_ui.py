@@ -712,6 +712,28 @@ if page == "📋 Question Generator":
                             if metadata.get('id'):
                                 st.write(f"  - **ID:** {metadata['id']}")
                 
+                # Amazon Rufus style chat redirection button
+                st.markdown("---")
+                col1, col2, col3 = st.columns([1, 2, 1])
+                with col2:
+                    if st.button(f"💬 Chat About This Question", key=f"chat_about_question_{i}", type="primary", use_container_width=True):
+                        # Store selected question in session state
+                        st.session_state[f"selected_question_{i}"] = {
+                            "question": q.get("question", ""),
+                            "answer": q.get("answer", ""),
+                            "metrics": q_metrics,
+                            "answer_metrics": a_metrics,
+                            "sources": sources,
+                            "retrieved_sources": q.get('retrieved_sources', 0),
+                            "context_source": q.get('context_source', ''),
+                            "topic_name": product_name,
+                            "question_index": i
+                        }
+                        # Switch to chat page
+                        st.session_state.page_selector = "💬 Chat Assistant"
+                        st.success(f"🎯 Question {i} selected for chat! Switching to Chat Assistant...")
+                        st.rerun()
+                
                 st.markdown("---")
         
         # Export options
@@ -812,310 +834,357 @@ if page == "📋 Question Generator":
                 st.session_state.page_selector = "💬 Chat Assistant"
                 st.rerun()
             
-            if st.button("🔄 Generate New Questions", use_container_width=True):
-                if 'question_gen_results' in st.session_state:
-                    del st.session_state.question_gen_results
-                st.rerun()
 
-else:  # Chat Assistant page
-    # Check if we have selected questions from question generator
-    selected_questions = {k: v for k, v in st.session_state.items() if k.startswith("selected_question_")}
+def display_agent_response(response_data: Dict, question_data: Dict):
+    """Display agent response exactly like rufus_chat_interface.py"""
+    response = response_data.get("response", "")
+    sources = response_data.get("sources", [])
+    metrics = response_data.get("metrics", {})
     
-    if selected_questions:
-        st.markdown("### 📋 Selected Questions - Click to Chat")
+    # Response container
+    st.subheader("🤖 AI Agent Response")
+    
+    # Response content
+    st.write(response)
+    
+    # Sources section
+    if sources:
+        st.markdown("##### 📚 Source Documents")
+        for i, source in enumerate(sources[:5], 1):  # Show top 5 sources
+            # Get actual content and metadata
+            content = source.get("content", "")
+            metadata = source.get("metadata", {})
+            similarity_score = source.get("score", 0)
+            
+            # Extract key metadata fields
+            doc_id = metadata.get("id", f"doc_{i}")
+            content_type = metadata.get("content_type", "unknown")
+            dataset = metadata.get("dataset", "unknown")
+            source_file = metadata.get("source", "unknown")
+            
+            with st.expander(f"📄 Source {i} ({similarity_score:.1%} match)"):
+                # Document metadata
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.write("**📋 Document Info**")
+                    st.write(f"**ID:** {doc_id}")
+                    st.write(f"**Type:** {content_type}")
+                    st.write(f"**Dataset:** {dataset}")
+                    if source_file != "unknown":
+                        st.write(f"**Source:** {source_file}")
+                
+                with col2:
+                    st.write("**📊 Match Score**")
+                    st.metric("Similarity", f"{similarity_score:.1%}")
+                
+                st.write("**📄 Content Preview:**")
+                # Show first 300 characters of content
+                preview = content[:300] + "..." if len(content) > 300 else content
+                st.text_area("Content", value=preview, height=150, disabled=True, label_visibility="collapsed", key=f"preview_msg_{doc_id[:8]}")
+    
+    # Metrics section
+    if metrics:
+        st.markdown("##### 📊 Response Quality Metrics")
+        col1, col2, col3, col4 = st.columns(4)
         
-        for key, question_data in selected_questions.items():
-            question_num = key.split("_")[-1]
-            question = question_data.get("question", "")
-            answer = question_data.get("answer", "")
-            metrics = question_data.get("metrics", {})
-            answer_metrics = question_data.get("answer_metrics", {})
-            sources = question_data.get("sources", 0)
-            topic_name = question_data.get("topic_name", "Generated Q&A")
-            
-            q_score = metrics.get("overall_score", 0) * 100
-            a_score = answer_metrics.get("overall_score", 0) * 100
-            
-            # Question card with chat button
-            st.markdown(f"""
-            <div class="glass-card">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
-                    <h4 style="margin: 0;">{topic_name} - Question {question_num}</h4>
-                    <div style="display: flex; gap: 1rem;">
-                        <span style="background: #4CAF50; color: white; padding: 0.25rem 0.5rem; border-radius: 10px; font-size: 0.8rem;">Q: {q_score:.0f}%</span>
-                        <span style="background: #2196F3; color: white; padding: 0.25rem 0.5rem; border-radius: 10px; font-size: 0.8rem;">A: {a_score:.0f}%</span>
+        with col1:
+            st.metric("🎯 Coverage", f"{metrics.get('coverage_final', 0)*100:.0f}%")
+        with col2:
+            st.metric("📊 Specificity", f"{metrics.get('specificity_final', 0)*100:.0f}%")
+        with col3:
+            st.metric("💡 Insightfulness", f"{metrics.get('insightfulness_final', 0)*100:.0f}%")
+        with col4:
+            st.metric("🔗 Groundedness", f"{metrics.get('groundedness_final', 0)*100:.0f}%")
+    
+    # Follow-up suggestions
+    st.markdown("##### 🔄 Follow-up Questions")
+    follow_ups = [
+        "Can you provide more details about this?",
+        "What are the practical implications?",
+        "How does this compare to alternatives?",
+        "What evidence supports this conclusion?"
+    ]
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button(follow_ups[0], key=f"followup_1"):
+            st.session_state.chat_input = follow_ups[0]
+            st.rerun()
+    with col2:
+        if st.button(follow_ups[1], key=f"followup_2"):
+            st.session_state.chat_input = follow_ups[1]
+            st.rerun()
+    
+    st.divider()
+
+else:  # Chat Assistant page - Amazon Rufus Style
+    # Initialize chat state like rufus_chat_interface.py
+    if "chat_messages" not in st.session_state:
+        st.session_state.chat_messages = []
+    if "selected_question" not in st.session_state:
+        st.session_state.selected_question = None
+    if "agent_responses" not in st.session_state:
+        st.session_state.agent_responses = {}
+    
+    # Chat history header - moved to top for ChatGPT-like experience
+    if st.session_state.chat_messages:
+        st.subheader("📜 Chat History")
+        
+        # Display chat messages with expanders for better UX
+        for msg_index, msg in enumerate(st.session_state.chat_messages[-10:], 1):  # Show last 10 messages
+            with st.expander(f"**{msg['type'].title()} {msg_index}**", expanded=False):
+                if msg["type"] == "user":
+                    st.markdown(f"""
+                    <div style="background: linear-gradient(135deg, #4CAF50, #45a049); 
+                                color: white; padding: 15px 20px; border-radius: 18px 18px 4px 18px; 
+                                margin: 10px 0; max-width: 80%; margin-left: auto;">
+                        <strong>You:</strong> {msg['message']}
                     </div>
-                </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    # Enhanced agent message display
+                    st.markdown(f"""
+                    <div style="background: linear-gradient(135deg, #2196F3, #1976D2); 
+                                color: white; padding: 15px 20px; border-radius: 18px 18px 18px 4px; 
+                                margin: 10px 0; max-width: 80%;">
+                        <strong>🤖 Assistant:</strong> {msg['message']}
+                    </div>
+                    """, unsafe_allow_html=True)
                 
-                <p style="font-size: 1.1rem; margin-bottom: 1rem;">{question}</p>
+                # Show sources if available - exactly like rufus_chat_interface.py
+                if msg.get("sources") and len(msg["sources"]) > 0:
+                    with st.expander("📚 Sources for this response", expanded=False):
+                        for i, source in enumerate(msg["sources"][:3], 1):  # Show top 3 sources
+                            # Get actual content and metadata
+                            content = source.get("content", "")
+                            metadata = source.get("metadata", {})
+                            similarity_score = source.get("score", 0)
+                            
+                            # Extract key metadata fields
+                            doc_id = metadata.get("id", f"doc_{i}")
+                            content_type = metadata.get("content_type", "unknown")
+                            dataset = metadata.get("dataset", "unknown")
+                            source_file = metadata.get("source", "unknown")
+                            
+                            with st.expander(f"📄 Source {i} ({similarity_score:.1%} match)", expanded=False):
+                                # Document metadata
+                                col1, col2 = st.columns(2)
+                                with col1:
+                                    st.write("**📋 Document Info**")
+                                    st.write(f"**ID:** {doc_id}")
+                                    st.write(f"**Type:** {content_type}")
+                                    st.write(f"**Dataset:** {dataset}")
+                                    if source_file != "unknown":
+                                        st.write(f"**Source:** {source_file}")
+                                
+                                with col2:
+                                    st.write("**📊 Match Score**")
+                                    st.metric("Similarity", f"{similarity_score:.1%}")
+                                
+                                st.write("**📄 Content Preview:**")
+                                # Show first 300 characters of content
+                                preview = content[:300] + "..." if len(content) > 300 else content
+                                st.text_area("Content", value=preview, height=150, disabled=True, label_visibility="collapsed", key=f"preview_msg_{msg_index}_{doc_id[:8]}")
                 
-                <p style="font-size: 1rem; margin-bottom: 1rem; color: #888;">{answer[:200]}...</p>
-                
-                <div style="text-align: center; margin-top: 1rem;">
-                    <button class="aesthetic-btn" onclick="window.location.reload()">
-                        💬 Chat About This Question
-                    </button>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        st.divider()
-    
-    # Chat container - moved to top
-    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-    
-    # Chat history header
-    st.markdown("### 📜 Chat History")
-    
-    # Display messages
-    for message in st.session_state.messages:
-        if message['role'] == 'user':
-            st.markdown(f"""
-            <div class="chat-message">
-                <strong>You:</strong> {message['content']}
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            # Enhanced display for agent responses
-            if 'dashboard_generation' in message.get('tools_used', []):
-                st.markdown(f"""
-                <div class="chat-message">
-                    <strong>AI Assistant:</strong>  Dashboard generated successfully! Scroll down to view.
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                # Show metrics, sources, and metadata for all responses
-                st.markdown(f"""
-                <div class="chat-message">
-                    <strong>AI Assistant:</strong> {message['content']}
-                </div>
-                """, unsafe_allow_html=True)
-                
-                # Always show metrics if available
-                if message.get('metrics'):
-                    with st.expander(" Response Metrics", expanded=True):
+                # Show metrics if available - exactly like rufus_chat_interface.py
+                if msg.get("metrics") and msg["metrics"]:
+                    with st.expander("📊 Quality Metrics", expanded=False):
+                        metrics = msg["metrics"]
                         col1, col2, col3, col4 = st.columns(4)
                         with col1:
-                            st.metric(" Overall", f"{message['metrics'].get('overall_score', 0)*100:.0f}%")
+                            st.metric("🎯 Coverage", f"{metrics.get('coverage_final', 0)*100:.0f}%")
                         with col2:
-                            st.metric(" Coverage", f"{message['metrics'].get('coverage_final', 0)*100:.0f}%")
+                            st.metric("📊 Specificity", f"{metrics.get('specificity_final', 0)*100:.0f}%")
                         with col3:
-                            st.metric(" Specificity", f"{message['metrics'].get('specificity_final', 0)*100:.0f}%")
+                            st.metric("💡 Insight", f"{metrics.get('insightfulness_final', 0)*100:.0f}%")
                         with col4:
-                            st.metric(" Groundedness", f"{message['metrics'].get('groundedness_final', 0)*100:.0f}%")
+                            st.metric("🔗 Grounded", f"{metrics.get('groundedness_final', 0)*100:.0f}%")
                 
-                # Always show sources if available
-                if message.get('sources'):
-                    with st.expander(" Source Documents", expanded=True):
-                        for j, source in enumerate(message['sources'][:5], 1):
-                            st.write(f"**Source {j}:**")
-                            st.write(f"• **Content:** {source.get('content', 'N/A')}")
-                            st.write(f"• **Similarity Score:** {source.get('score', 0):.2f}")
-                            
-                            # Show metadata
-                            if source.get('metadata'):
-                                st.write("• **Metadata:**")
-                                metadata = source['metadata']
-                                
-                                # Show document link if available
-                                if metadata.get('source_file'):
-                                    st.write(f"  - **Document:** {metadata['source_file']}")
-                                if metadata.get('dataset'):
-                                    st.write(f"  - **Dataset:** {metadata['dataset']}")
-                                if metadata.get('content_type'):
-                                    st.write(f"  - **Type:** {metadata['content_type']}")
-                                if metadata.get('id'):
-                                    st.write(f"  - **ID:** {metadata['id']}")
+                st.divider()
     
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Check if we have generated questions from question generator
+    if st.session_state.get("question_gen_results"):
+        questions = st.session_state.question_gen_results.get("questions", [])
+        
+        if questions:
+            st.markdown("### 📋 Generated Questions - Click to Chat")
+            
+            # Display question cards exactly like rufus_chat_interface.py
+            for i, question_data in enumerate(questions, 1):
+                # Simple question card like rufus_chat_interface.py
+                with st.container():
+                    # Header with scores
+                    col1, col2 = st.columns([3, 1])
+                    with col1:
+                        st.subheader(f"🤔 Question {i}")
+                    with col2:
+                        q_metrics = question_data.get("metrics", {})
+                        a_metrics = question_data.get("answer_metrics", {})
+                        q_score = q_metrics.get("overall_score", 0) * 100
+                        a_score = a_metrics.get("overall_score", 0) * 100
+                        st.markdown(f"🟢 Q: {q_score:.0f}% | 🔵 A: {a_score:.0f}%")
+                    
+                    # Question text
+                    st.write(question_data.get("question", ""))
+                    
+                    # Metrics
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        sources_count = question_data.get("retrieved_sources", 0)
+                        st.metric("📚 Sources", sources_count)
+                    with col2:
+                        st.metric("🎯 Coverage", f"{q_metrics.get('coverage_final', 0)*100:.0f}%")
+                    with col3:
+                        st.metric("📊 Specificity", f"{q_metrics.get('specificity_final', 0)*100:.0f}%")
+                    
+                    # Chat button - exactly like rufus_chat_interface.py
+                    if st.button(f"💬 Chat About This Question", key=f"chat_btn_{i}"):
+                        st.session_state.selected_question = i
+                        st.rerun()
+                    
+                    st.divider()
+            
+            # Check if this question was clicked - exactly like rufus_chat_interface.py
+            if st.session_state.get("selected_question") == i:
+                # Generate agent response for this question
+                if i not in st.session_state.agent_responses:
+                    with st.spinner("🤖 Thinking..."):
+                        question_text = questions[i-1].get("question", "")
+                        
+                        try:
+                            response = requests.post(
+                                "http://localhost:8001/advanced-chat",
+                                json={"message": question_text, "session_id": f"question_{i}"},
+                                timeout=60
+                            )
+                        
+                            if response.status_code == 200:
+                                response_data = response.json()
+                                st.session_state.agent_responses[i] = response_data
+                            else:
+                                st.session_state.agent_responses[i] = {
+                                    "response": f"API Error: {response.status_code}",
+                                    "sources": [],
+                                    "metrics": {}
+                                }
+                        except Exception as e:
+                            st.session_state.agent_responses[i] = {
+                                "response": f"Error: {str(e)}",
+                                "sources": [],
+                                "metrics": {}
+                            }
+                else:
+                    # Display agent response - exactly like rufus_chat_interface.py
+                    response_data = st.session_state.agent_responses[i]
+                    display_agent_response(response_data, questions[i-1])
     
-    st.markdown("---")
-    
-    # Regular chat interface
+    # Chat input area - exactly like rufus_chat_interface.py
     st.markdown("### 💬 Direct Chat")
-    st.markdown("Ask me anything about the data, analytics, or request visualizations...")
     
-    # Chat input
+    # Handle quick actions if any
+    user_input = ""
+    if hasattr(st.session_state, 'quick_action'):
+        user_input = st.text_input(
+            "Ask me anything about 6sense, analytics, ROI, or visualizations...",
+            value=user_input,
+            key="user_input",
+            placeholder="e.g., 'Generate analytics report', 'Calculate ROI', 'Create dashboard', 'What are 6sense features?'"
+        )
+    else:
+        user_input = st.text_input(
+            "Ask me anything about 6sense, analytics, ROI, or visualizations...",
+            key="user_input",
+            placeholder="Try: 'Show me revenue trends' or 'Create a dashboard for customer analytics'"
+        )
+    
     col1, col2 = st.columns([4, 1])
     with col1:
-        user_input = st.text_input(
-            "Your message:",
-            placeholder="What would you like to know?",
-            key="chat_input",
-            label_visibility="collapsed"
-        )
+        send_button = st.button("🚀 Send", type="primary", use_container_width=True)
     with col2:
-        send_button = st.button(" Send", type="primary", use_container_width=True)
-    
-    # Clear button below input
-    clear_button = st.button(" Clear Chat History", use_container_width=True)
-    
-    # Clear chat history
-    if clear_button:
-        st.session_state.messages = []
-        st.session_state.chat_context = []
-        st.rerun()
+        clear_button = st.button("🗑️ Clear", use_container_width=True)
     
     # Send message
     if send_button and user_input:
         # Add user message
-        st.session_state.messages.append({
-            "role": "user",
-            "content": user_input,
+        st.session_state.chat_messages.append({
+            "type": "user",
+            "message": user_input,
             "timestamp": datetime.now()
         })
         
         # Get response from agent
         try:
-            # First check if backend is available
-            backend_check = requests.get("http://localhost:8001/", timeout=5)
+            # First check if advanced agent is available
+            advanced_agent_check = requests.get("http://localhost:8001/health", timeout=2)
             
-            if backend_check.status_code != 200:
-                st.session_state.messages.append({
-                    'role': 'assistant',
-                    'content': "Backend service is not responding properly. Please check if the backend server is running on localhost:8001.",
-                    'timestamp': datetime.now()
-                })
-            else:
+            # If advanced agent is available, use it
+            if advanced_agent_check.status_code == 200:
                 response = requests.post(
                     "http://localhost:8001/advanced-chat",
                     json={
                         "message": user_input,
                         "session_id": st.session_state.session_id
                     },
-                    timeout=30
+                    timeout=60
                 )
+            else:
+                # Fallback to simple chat agent if advanced agent is not available
+                response = requests.post(
+                    "http://localhost:8001/chat",
+                    json={
+                        "message": user_input,
+                        "session_id": st.session_state.session_id
+                    },
+                    timeout=60
+                )
+            
+            if response.status_code == 200:
+                result = response.json()
+                agent_response = result.get("response", "I'm having trouble processing your request.")
+                sources = result.get("sources", [])
+                metrics = result.get("metrics", {})
                 
-                if response.status_code == 200:
-                    result = response.json()
-                    ai_response = result.get('response', 'Sorry, I couldn\'t process that request.')
-                    sources = result.get('sources', [])
-                    metrics = result.get('metrics', {})
-                    tools_used = result.get('tools_used', [])
-                    
-                    # Store response with full metadata
-                    st.session_state.messages.append({
-                        'role': 'assistant', 
-                        'content': ai_response,
-                        'sources': sources,
-                        'metrics': metrics,
-                        'tools_used': tools_used,
-                        'timestamp': datetime.now()
-                    })
-                    
-                    # Handle dashboard generation
-                    if 'dashboard_generation' in tools_used:
-                        st.success(' Dashboard code generated successfully!')
-                        
-                        # Display metrics and sources first
-                        if metrics:
-                            st.markdown("###  Response Metrics")
-                            col1, col2, col3, col4 = st.columns(4)
-                            with col1:
-                                st.metric(" Overall", f"{metrics.get('overall_score', 0)*100:.0f}%")
-                            with col2:
-                                st.metric(" Coverage", f"{metrics.get('coverage_final', 0)*100:.0f}%")
-                            with col3:
-                                st.metric(" Specificity", f"{metrics.get('specificity_final', 0)*100:.0f}%")
-                            with col4:
-                                st.metric(" Insightfulness", f"{metrics.get('insightfulness_final', 0)*100:.0f}%")
-                        
-                        if sources:
-                            st.markdown("###  Source Documents")
-                            for j, source in enumerate(sources[:3], 1):
-                                st.write(f"**Source {j}:**")
-                                st.write(f"• **Content:** {source.get('content', 'N/A')}")
-                                st.write(f"• **Similarity Score:** {source.get('score', 0):.2f}")
-                                
-                                # Show metadata
-                                if source.get('metadata'):
-                                    st.write("• **Metadata:**")
-                                    st.json(source['metadata'])
-                        
-                        # Extract and clean dashboard code
-                        dashboard_code = ai_response.strip()
-                        
-                        # Remove any leading/trailing quotes and clean
-                        if '```python' in dashboard_code:
-                            dashboard_code = dashboard_code.split('```python')[1].split('```')[0]
-                        elif '```' in dashboard_code:
-                            dashboard_code = dashboard_code.split('```')[1].split('```')[0]
-                        
-                        # Remove problematic patterns
-                        dashboard_code = dashboard_code.strip().strip('"\'')
-                        dashboard_code = dashboard_code.replace('st.set_page_config(', '# st.set_page_config(')
-                        dashboard_code = dashboard_code.replace('"""', '')
-                        
-                        # Display in canvas
-                        st.markdown("###  Generated Dashboard")
-                        st.markdown("""
-                        <div class="canvas-container">
-                            <div class="canvas-header">
-                                <div class="canvas-title">
-                                     Generated Dashboard
-                                </div>
-                                <div class="canvas-actions">
-                                    <button class="canvas-btn" onclick="window.location.reload()"> Refresh</button>
-                                    <button class="canvas-btn" onclick="window.print()"> Print</button>
-                                </div>
-                            </div>
-                            <div class="canvas-content">
-                        </div>
-                        """, unsafe_allow_html=True)
-                        
-                        try:
-                            # Create a safe execution environment
-                            exec_globals = {
-                                'st': st,
-                                'pd': pd,
-                                'px': px,
-                                'go': go,
-                                'np': np,
-                                'datetime': datetime,
-                                'base64': base64
-                            }
-                            
-                            # Execute the dashboard code
-                            exec(dashboard_code, exec_globals)
-                            st.success(" Dashboard executed successfully!")
-                            
-                        except Exception as e:
-                            st.error(f" Dashboard execution failed: {e}")
-                            st.write("This might be due to missing dependencies or incompatible Streamlit components.")
-                            
-                            # Show the problematic code for debugging
-                            with st.expander(" Debug - Generated Code"):
-                                st.code(dashboard_code, language='python')
-                    
-                    else:
-                        st.session_state.messages.append({
-                            'role': 'assistant',
-                            'content': f"Backend service returned error: {response.status_code}. Please check the backend logs.",
-                            'timestamp': datetime.now()
-                        })
-                        
+                # Add to chat history - exactly like rufus_chat_interface.py
+                st.session_state.chat_messages.append({
+                    "type": "agent", 
+                    "message": agent_response,
+                    "sources": sources,
+                    "metrics": metrics,
+                    "timestamp": datetime.now()
+                })
+            else:
+                st.session_state.chat_messages.append({
+                    "type": "agent",
+                    "message": f"Backend service returned error: {response.status_code}",
+                    "sources": [],
+                    "metrics": {},
+                    "timestamp": datetime.now()
+                })
+                
         except requests.exceptions.RequestException as e:
-            st.session_state.messages.append({
-                'role': 'assistant',
-                'content': f"Connection error: Unable to reach the backend service. Please ensure the backend is running on localhost:8001. Error: {str(e)}",
-                'timestamp': datetime.now()
+            st.session_state.chat_messages.append({
+                "type": "agent",
+                "message": f"Connection error: Unable to reach the backend service. Please ensure that backend is running on localhost:8001. Error: {str(e)}",
+                "sources": [],
+                "metrics": {},
+                "timestamp": datetime.now()
             })
         except Exception as e:
-            st.session_state.messages.append({
-                'role': 'assistant',
-                'content': f"Unexpected error: {str(e)}",
-                'timestamp': datetime.now()
+            st.session_state.chat_messages.append({
+                "type": "agent",
+                "message": f"Unexpected error: {str(e)}",
+                "sources": [],
+                "metrics": {},
+                "timestamp": datetime.now()
             })
         
-        # Only rerun if no dashboard was generated and no navigation intent
-        if 'dashboard_generation' not in tools_used:
-            st.rerun()
+        st.rerun()
     
     # Footer
     st.markdown("---")
     st.markdown(
         '<div style="text-align: center; color: white; opacity: 0.7;">'
-        ' Powered by 6sense Revenue AI | Advanced Analytics & Intelligence Platform'
+        '🚀 Powered by 6sense Revenue AI | Advanced Analytics & Intelligence Platform'
         '</div>',
         unsafe_allow_html=True
     )
