@@ -803,6 +803,7 @@ if st.session_state.page == 'chat':
                                 </div>
                             </div>
                             <div class="canvas-content">
+                        </div>
                         """, unsafe_allow_html=True)
                         
                         try:
@@ -1163,42 +1164,42 @@ elif st.session_state.page == 'questions':
                             topic_name = first_source['metadata'].get('dataset', 'Generated Q&A')
                     
                     # Beautiful question card
-                    st.markdown(f"""
+                    html_content = """
                     <div class="glass-card">
                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
-                            <h4 style="margin: 0;">Question {topic_name} - Question {i}</h4>
+                            <h4 style="margin: 0;">Question """ + topic_name + """ - Question """ + str(i) + """</h4></strong>
                             <div style="display: flex; gap: 1rem;">
-                                <span style="background: #4CAF50; color: white; padding: 0.25rem 0.5rem; border-radius: 10px; font-size: 0.8rem;">Q: {q_score:.0f}%</span>
-                                <span style="background: #2196F3; color: white; padding: 0.25rem 0.5rem; border-radius: 10px; font-size: 0.8rem;"> A: {a_score:.0f}%</span>
+                                <span style="background: #4CAF50; color: white; padding: 0.25rem 0.5rem; border-radius: 10px; font-size: 0.8rem;">Q: """ + str(q_score) + """%</span></strong>
+                                <span style="background: #2196F3; color: white; padding: 0.25rem 0.5rem; border-radius: 10px; font-size: 0.8rem;">A: """ + str(a_score) + """%</span></strong>
                             </div>
                         </div>
                         
-                        <p style="font-size: 1.1rem; margin-bottom: 1rem;">{question}</p>
+                        <p style="font-size: 1.1rem; margin-bottom: 1rem;">""" + question + """</p></strong>
                         
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
                             <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);">
-                                <h5 style="margin: 0 0 0.5rem 0; color: #667eea;"> Metrics</h5>
+                                <h5 style="margin: 0 0 0.5rem 0; color: #667eea;">Metrics</h5>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
                                     <div>
-                                        <strong> Sources:</strong> {sources}
+                                        <strong>Sources:</strong> """ + str(sources) + """</strong>
                                     </div>
                                     <div>
-                                        <strong> Coverage:</strong> {metrics.get('coverage_final', 0)*100:.0f}%
+                                        <strong>Coverage:</strong> """ + str(metrics.get('coverage_final', 0)*100) + """%</strong>
                                     </div>
                                     <div>
-                                        <strong> Specificity:</strong> {metrics.get('specificity_final', 0)*100:.0f}%
+                                        <strong>Specificity:</strong> """ + str(metrics.get('specificity_final', 0)*100) + """%</strong>
                                     </div>
                                 </div>
                             </div>
                             
                             <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);">
-                                <h5 style="margin: 0 0 0.5rem 0; color: #2196F3;"> Answer Metrics</h5>
+                                <h5 style="margin: 0 0 0.5rem 0; color: #2196F3;">Answer Metrics</h5>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
                                     <div>
-                                        <strong> Insightfulness:</strong> {answer_metrics.get('insightfulness_final', 0)*100:.0f}%
+                                        <strong>Insightfulness:</strong> """ + str(answer_metrics.get('insightfulness_final', 0)*100) + """%</strong>
                                     </div>
                                     <div>
-                                        <strong> Groundedness:</strong> {answer_metrics.get('groundedness_final', 0)*100:.0f}%
+                                        <strong>Groundedness:</strong> """ + str(answer_metrics.get('groundedness_final', 0)*100) + """%</strong>
                                     </div>
                                 </div>
                             </div>
@@ -1210,7 +1211,8 @@ elif st.session_state.page == 'questions':
                             </button>
                         </div>
                     </div>
-                    """, unsafe_allow_html=True)
+                    """
+                    st.markdown(html_content, unsafe_allow_html=True)
                     
                     st.divider()
             
