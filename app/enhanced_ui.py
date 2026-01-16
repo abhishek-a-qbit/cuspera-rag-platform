@@ -1025,7 +1025,7 @@ elif st.session_state.page == 'questions':
                                 
                                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
                                     <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2);">
-                                        <h5 style="margin: 0 0 0.5rem 0; color: #667eea;"> Metrics</h5>
+                                        <h5 style="margin: 0 0 0.5rem 0; color: #667eea;">Metrics</h5>
                                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
                                             <div>
                                                 <strong> Sources:</strong> {sources}
